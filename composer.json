@@ -1,0 +1,28 @@
+{
+    "name": "programster/collections",
+    "type": "library",
+    "description": "A simple library to simplify the creation of strict type arrays/collections.",
+    "keywords": ["collection","library"],
+    "homepage": "https://github.com/programster/package-core-libs",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Stuart Page",
+            "email": "sdpagent@gmail.com",
+            "homepage": "https://blog.programster.org",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=8.2.0"
+    },
+    "require-dev" : {
+    },
+    "suggest": {
+    },
+    "autoload": {
+        "psr-4": {
+            "Programster\\Collections\\": "src/",
+        }
+    }
+}
