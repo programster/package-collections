@@ -39,11 +39,11 @@ abstract class AbstractCollection extends \ArrayObject
     }
 
 
-    public function offsetSet(mixed $index, mixed $newVal) : void
+    public function offsetSet(mixed $key, mixed $value) : void
     {
-        if ($newVal instanceof $this->m_elementType)
+        if ($value instanceof $this->m_elementType)
         {
-            parent::offsetSet($index, $newVal);
+            parent::offsetSet($key, $value);
         }
         else
         {
