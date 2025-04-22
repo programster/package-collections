@@ -26,7 +26,7 @@ abstract class AbstractCollection extends \ArrayObject
     }
 
 
-    public function append(mixed $value) : void
+    public function append($value) : void
     {
         if ($value instanceof $this->m_elementType)
         {
@@ -39,11 +39,11 @@ abstract class AbstractCollection extends \ArrayObject
     }
 
 
-    public function offsetSet(mixed $index, mixed $newVal) : void
+    public function offsetSet($key, $value) : void
     {
-        if ($newVal instanceof $this->m_elementType)
+        if ($value instanceof $this->m_elementType)
         {
-            parent::offsetSet($index, $newVal);
+            parent::offsetSet($key, $value);
         }
         else
         {
@@ -61,7 +61,7 @@ abstract class AbstractCollection extends \ArrayObject
     }
 
 
-    public function filter(callable $callback) : static
+    public function filter(callable $callback)
     {
         foreach ($this as $index => $item)
         {
