@@ -6,7 +6,9 @@ misusing one is rejected. A test fails if it throws, fails an `assert()`, or rai
 
 ## Running them on every supported version of PHP
 This lints every file and runs the tests on PHP 8.2, 8.3, 8.4 and 8.5, each in its own Docker container, then runs
-PHPStan once, on the lowest version. It's what the GitHub workflow runs, so a pass here means a pass there.
+PHPStan once, on the lowest version. It's what the GitHub workflow runs, so a pass here means a pass there. The
+workflow also writes the results as annotations (with `testing/github-annotations.sh`), which can be read on the
+workflow's page without logging in to GitHub.
 
 ```bash
 composer install
@@ -31,14 +33,24 @@ vendor/bin/phpstan
 ```
 
 It runs at the highest level, 10, set in `phpstan.neon.dist`. The only errors it ignores are the ones the tests cause
-on purpose, by passing the wrong type to check that it's rejected, and the base class's `new static()`, which is safe
+on purpose, by passing the wrong type, or creating a collection without its own constructor, to check that it's
+rejected, and the base class's `new static()`, which is safe
 because the constructor checks every collection's constructor takes just its elements.
+
+## The documentation's examples
+`testing/tests/DocsTest.php` runs the PHP examples in the README and every page in `docs/`, so the documentation can't
+drift from what the code does. Each document's examples run in order, as one script, in a separate PHP process, with a
+`use` statement for every class in the package added. An example whose first line is `// Throws SomeException` must
+throw that exception. See `testing/DocsExampleRunner.php`.
 
 ## Adding a test
 Each class has a file of tests in `testing/tests/`, e.g. `AbstractReadonlyCollectionTest.php`, and the classes the
 tests use are in `testing/Fixtures/`. A test is a named callback:
 
 ```php
+use Programster\Collections\Testing\Fixtures\UserCollection;
+use Programster\Collections\Testing\SmokeTest;
+
 $smoke->run("readonly: first() of an empty collection throws", function (): void {
     $getFirstOfEmpty = function (): void {
         (new UserCollection())->first();

@@ -4,11 +4,10 @@
  * A typed collection that can't be changed once it's created, for defensive programming: once a collection has been
  * checked and handed over, nothing can add to it, remove from it or replace its elements.
  *
- * It has the same interface as ramsey/collection wherever possible, so it can act as a drop-in replacement. The
- * exceptions are the methods that would change the collection (add(), remove() and clear()), which it doesn't have.
- * Combine collections with merge() instead. It also deliberately doesn't support array syntax (ArrayAccess), as
- * $collection[] = $x could then only fail when it runs, rather than being caught by PHP and the IDE as it's typed.
- * Use get() to read an element by its position.
+ * It's similar to ramsey/collection's collections, so it'll feel familiar, but it isn't compatible with them. It has
+ * none of the methods that would change it (add(), remove() and clear()): combine collections with merge() instead.
+ * It also deliberately doesn't support array syntax (ArrayAccess), as $collection[] = $x could then only fail when it
+ * runs, rather than being caught by PHP and the IDE as it's typed. Use get() to read an element by its position.
  *
  * To create one, extend it with a readonly class whose constructor takes just the elements, as a typed variadic, and
  * passes them on, and whose getType() returns the elements' class, e.g.:
@@ -35,6 +34,7 @@ use Programster\Collections\Exceptions\InvalidPropertyOrMethod;
 use Programster\Collections\Exceptions\NoSuchElementException;
 use Programster\Collections\Exceptions\OutOfBoundsException;
 use Programster\Collections\Exceptions\UnsupportedOperationException;
+use Programster\Collections\Internal\ElementTools;
 
 /**
  * @template T
@@ -42,6 +42,8 @@ use Programster\Collections\Exceptions\UnsupportedOperationException;
  */
 abstract readonly class AbstractReadonlyCollection implements \Countable, \IteratorAggregate
 {
+    use ElementTools;
+
     /** @var list<T> */
     protected array $m_elements;
 
@@ -57,11 +59,13 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
      * subclass's constructor doesn't declare the type.
      *
      * @throws \LogicException - if the subclass's constructor takes anything other than one variadic parameter, as
-     * the methods that return a new collection need to be able to create one from just its elements.
+     * the methods that return a new collection need to be able to create one from just its elements, or if its
+     * getType() doesn't name a type that exists.
      */
     protected function __construct(mixed ...$elements)
     {
         self::assertValidConstructor(static::class);
+        $this->assertValidType();
         $type = $this->getType();
 
         foreach ($elements as $element)
@@ -76,14 +80,6 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
 
         $this->m_elements = array_values($elements);
     }
-
-
-    /**
-     * The type of element the collection holds: a class, interface or enum name, or one of "string", "int", "float"
-     * or "bool".
-     * @return string
-     */
-    abstract public function getType(): string;
 
 
     /**
@@ -186,10 +182,10 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
      * @throws InvalidPropertyOrMethod - if an element has no such public property or method.
      * @throws UnsupportedOperationException - if a property or method is given, but the elements are scalars.
      */
-    public function sort(?string $propertyOrMethod = null, Sort $order = Sort::Ascending): static
+    public function sort(?string $propertyOrMethod = null, Sort $order = Sort::ASCENDING): static
     {
         $sorted = $this->m_elements;
-        $direction = ($order === Sort::Descending) ? -1 : 1;
+        $direction = ($order === Sort::DESCENDING) ? -1 : 1;
 
         $compare = function (mixed $a, mixed $b) use ($propertyOrMethod, $direction): int {
             return ($this->extractValue($a, $propertyOrMethod) <=> $this->extractValue($b, $propertyOrMethod))
@@ -270,8 +266,8 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
     public function diff(self $other): static
     {
         $this->assertSameClass($other);
-        $notInOther = $this->elementsNotIn($this->m_elements, $other->m_elements);
-        $notInThis = $this->elementsNotIn($other->m_elements, $this->m_elements);
+        $notInOther = self::elementsNotIn($this->m_elements, $other->m_elements);
+        $notInThis = self::elementsNotIn($other->m_elements, $this->m_elements);
         return new static(...$notInOther, ...$notInThis);
     }
 
@@ -375,73 +371,6 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
 
 
     /**
-     * Get the elements of one list that aren't in another, compared with ===.
-     * @param list<T> $elements - the elements to check.
-     * @param list<T> $others - the elements to look for them in.
-     * @return list<T>
-     */
-    private function elementsNotIn(array $elements, array $others): array
-    {
-        $notIn = [];
-
-        foreach ($elements as $element)
-        {
-            if (!in_array($element, $others, true))
-            {
-                $notIn[] = $element;
-            }
-        }
-
-        return $notIn;
-    }
-
-
-    /**
-     * Get the value to compare or return for an element: the element itself, or the value of one of its public
-     * properties or methods. A property is used if there's both a public property and a method with the name.
-     *
-     * @param mixed $element - the element.
-     *
-     * @param string|null $propertyOrMethod - the name of the public property or method, or null for the element
-     * itself.
-     *
-     * @return mixed
-     *
-     * @throws InvalidPropertyOrMethod - if the element has no such public property or method.
-     * @throws UnsupportedOperationException - if a name is given, but the element isn't an object.
-     */
-    private function extractValue(mixed $element, ?string $propertyOrMethod): mixed
-    {
-        if ($propertyOrMethod === null)
-        {
-            $value = $element;
-        }
-        elseif (!is_object($element))
-        {
-            throw new UnsupportedOperationException(
-                "A collection of {$this->getType()} doesn't support reading a property or method of its elements."
-            );
-        }
-        elseif (self::hasPublicProperty($element, $propertyOrMethod))
-        {
-            $value = $element->$propertyOrMethod;
-        }
-        elseif (is_callable([$element, $propertyOrMethod]))
-        {
-            $value = $element->$propertyOrMethod();
-        }
-        else
-        {
-            throw new InvalidPropertyOrMethod(
-                "There's no public property or method called \"{$propertyOrMethod}\" in " . get_class($element) . "."
-            );
-        }
-
-        return $value;
-    }
-
-
-    /**
      * Check that a collection's constructor takes just its elements, as one variadic parameter, as the methods that
      * return a new collection create it with just the elements. This is only checked the first time each class is
      * created, as it can't change.
@@ -469,36 +398,5 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
 
             $checkedClasses[$class] = true;
         }
-    }
-
-
-    /**
-     * Check whether a value is of a collection's type.
-     * @param mixed $value - the value.
-     * @param string $type - a class, interface or enum name, or one of "string", "int", "float" or "bool".
-     * @return bool
-     */
-    private static function isOfType(mixed $value, string $type): bool
-    {
-        return match ($type) {
-            'string' => is_string($value),
-            'int' => is_int($value),
-            'float' => is_float($value),
-            'bool' => is_bool($value),
-            default => $value instanceof $type,
-        };
-    }
-
-
-    /**
-     * Check whether an object has a public property with a name, which a method of the same name doesn't count as.
-     * @param object $object - the object.
-     * @param string $name - the property's name.
-     * @return bool
-     */
-    private static function hasPublicProperty(object $object, string $name): bool
-    {
-        $isDeclaredPublic = (property_exists($object, $name) && (new \ReflectionProperty($object, $name))->isPublic());
-        return $isDeclaredPublic || array_key_exists($name, get_object_vars($object));
     }
 }

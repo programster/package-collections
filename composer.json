@@ -1,7 +1,7 @@
 {
     "name": "programster/collections",
     "type": "library",
-    "description": "Strictly typed collections, including readonly ones, with the same interface as ramsey/collection wherever possible.",
+    "description": "Strictly typed collections, including readonly ones for defensive programming.",
     "keywords": ["collection","library"],
     "homepage": "https://github.com/programster/package-collections",
     "license": "MIT",

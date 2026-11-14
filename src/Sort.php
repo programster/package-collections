@@ -7,6 +7,6 @@ namespace Programster\Collections;
 
 enum Sort: string
 {
-    case Ascending = 'asc';
-    case Descending = 'desc';
+    case ASCENDING = 'asc';
+    case DESCENDING = 'desc';
 }

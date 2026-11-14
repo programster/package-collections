@@ -4,17 +4,23 @@
 - [Methods](#methods)
 - [Reading elements](#reading-elements)
 - [Sorting, filtering and combining](#sorting-filtering-and-combining)
-- [Compared with ramsey/collection](#compared-with-ramseycollection)
+- [Coming from ramsey/collection](#coming-from-ramseycollection)
 
 A readonly collection can't be changed once it's created: nothing can add to it, remove from it or replace its
-elements. Methods that would change it return a new collection instead, and leave the original as it was.
+elements. Methods that would change it return a new collection instead, and leave the original as it was. Use one
+wherever a collection doesn't need to change after it's created, which is most of the time.
 
 ## Creating a collection
 Extend `AbstractReadonlyCollection` with a readonly class. Its constructor must take just the elements, as one typed
 variadic parameter, and pass them on, and its `getType()` must return the elements' type:
 
 ```php
-use Programster\Collections\AbstractReadonlyCollection;
+final readonly class User
+{
+    public function __construct(public string $name, public int $age) {}
+
+    public function isAdult(): bool { return $this->age >= 18; }
+}
 
 /**
  * @extends AbstractReadonlyCollection<User>
@@ -29,7 +35,10 @@ final readonly class UserCollection extends AbstractReadonlyCollection
     public function getType(): string { return User::class; }
 }
 
-$users = new UserCollection($ann, $bob);
+$ann = new User("Ann", 40);
+$bob = new User("Bob", 16);
+$cat = new User("Cat", 33);
+$users = new UserCollection($ann, $bob, $cat);
 ```
 
 - **The typed variadic** makes PHP reject an element of the wrong type where the collection is created. If a
@@ -41,8 +50,10 @@ $users = new UserCollection($ann, $bob);
 - **The class must be readonly**, which PHP enforces, as a readonly class can only be extended by another.
 - **The `@extends` docblock** tells PHPStan and your IDE the type of the elements, so they know what `first()`,
   `get()` and a `foreach` give you.
-- **`getType()`** returns a class, interface or enum name, or one of `"string"`, `"int"`, `"float"` or `"bool"` for a
-  collection of scalars.
+- **`getType()`** returns a class, interface or enum name, or one of `"array"`, `"bool"` (or `"boolean"`),
+  `"callable"`, `"float"` (or `"double"`), `"int"` (or `"integer"`), `"null"`, `"numeric"`, `"object"`, `"resource"`,
+  `"scalar"`, `"string"` or `"mixed"`. It's checked the first time the collection is created, so a typo, or a class
+  name that isn't imported, throws a `\LogicException` straight away, rather than every element being rejected.
 
 The elements are always numbered from 0. Any keys, such as from spreading an associative array into the constructor,
 are dropped.
@@ -54,8 +65,8 @@ are dropped.
 | `get(int $index)` | Gets the element at a position, or throws `OutOfBoundsException`. |
 | `first()` / `last()` | Gets the first or last element, or throws `NoSuchElementException` if it's empty. |
 | `contains($element, bool $strict = true)` | Checks whether the collection holds an element. |
-| `column(string $propertyOrMethod)` | Gets the value of a public property or method from every element. |
-| `sort(?string $propertyOrMethod = null, Sort $order = Sort::Ascending)` | Returns a new, sorted collection. |
+| `column(string $propertyOrMethod)` | Gets the value of a public property, method or array key from every element. |
+| `sort(?string $propertyOrMethod = null, Sort $order = Sort::ASCENDING)` | Returns a new, sorted collection. |
 | `filter(callable $callback)` | Returns a new collection of the elements the callback returns true for. |
 | `where(?string $propertyOrMethod, mixed $value)` | Returns a new collection of the elements with that value. |
 | `map(callable $callback)` | Returns an array of the callback's result for each element. |
@@ -70,12 +81,12 @@ A collection can also be looped over with `foreach`, and passed to `count()`.
 
 ## Reading elements
 ```php
-$users->get(0);                  // The first user, by position.
-$users->first();                 // The same.
-$users->last();                  // The last user.
-$users->contains($ann);          // Whether $ann is in it, as the same object.
-$users->column('name');          // e.g. ["Ann", "Bob"], from a public property.
-$users->column('getEmail');      // From a public method, which must take no arguments.
+$first = $users->get(0);         // Ann, by position.
+$alsoFirst = $users->first();    // The same.
+$last = $users->last();          // Cat.
+$hasAnn = $users->contains($ann);       // true, as it's the same object.
+$names = $users->column('name');        // ["Ann", "Bob", "Cat"], from a public property.
+$adults = $users->column('isAdult');    // [true, false, true], from a public method.
 
 foreach ($users as $index => $user)
 {
@@ -83,41 +94,52 @@ foreach ($users as $index => $user)
 }
 ```
 
-`column()`, `sort()` and `where()` read a public property, or call a public method that takes no arguments. They
-throw an `InvalidPropertyOrMethod` if the elements have no such public property or method, and an
-`UnsupportedOperationException` if the elements are scalars, which have neither.
+`column()`, `sort()` and `where()` read a public property, call a public method that takes no arguments, or, for a
+collection of arrays, read a key. They throw an `InvalidPropertyOrMethod` if the elements have no such property, method
+or key, and an `UnsupportedOperationException` if the elements are scalars, which have none of them:
+
+```php
+// Throws InvalidPropertyOrMethod
+$emails = $users->column('email');
+```
 
 `contains()`, `diff()` and `intersect()` compare elements with `===`, so an object only matches itself, not an equal
 copy of it. Pass `false` as `contains()`'s second argument to compare with `==` instead.
 
 ## Sorting, filtering and combining
 ```php
-use Programster\Collections\Sort;
-
 $byName = $users->sort('name');
-$oldestFirst = $users->sort('getAge', Sort::Descending);
+$oldestFirst = $users->sort('age', Sort::DESCENDING);
 
 $isAdult = function (User $user): bool {
-    return $user->getAge() >= 18;
+    return $user->isAdult();
 };
 
-$adults = $users->filter($isAdult);
-$admins = $users->where('role', Role::ADMIN);
-$everyone = $users->merge($moreUsers, $evenMoreUsers);
+$grownUps = $users->filter($isAdult);
+$fortyYearOlds = $users->where('age', 40);
+$everyone = $users->merge(new UserCollection(new User("Dan", 50)));
+
+print count($everyone) . " users, and still " . count($users) . " in the original." . PHP_EOL;
 ```
 
 Each of these returns a new collection of the same class, and leaves `$users` as it was. `merge()`, `diff()` and
 `intersect()` only accept a collection of the same class, which PHPStan checks as you type, and they throw a
 `CollectionMismatchException` if given another.
 
-## Compared with ramsey/collection
-The methods have the same names, parameters and behaviour as ramsey/collection's wherever possible, so code written
-for it can switch with few changes. The differences all come from the collection being readonly:
+## Coming from ramsey/collection
+The collection is similar to ramsey/collection's, so it'll feel familiar, but it isn't compatible with it. It's built
+around defensive programming, so in places it works differently, to catch mistakes as early as possible, and so that it
+can't be changed:
 
 - **There's no `add()`, `remove()` or `clear()`**, as they would change the collection. Use `merge()` to add elements,
   and `filter()` to leave some out.
+- **Every collection must have a typed variadic constructor**, rather than being created from an array, so PHP checks
+  the elements' type where the collection is made.
+- **`Sort`'s cases are `Sort::ASCENDING` and `Sort::DESCENDING`.**
 - **There's no array syntax** (`ArrayAccess`), such as `$users[] = $user` or `$users[0]`. Writing to a collection
   that way could only fail when the code runs, so it's left out, to be caught by PHP and your IDE as it's typed. Use
   `get()` to read an element by its position.
 - **`map()` returns an array**, as its results can be of any type. Put them in a collection of their type if needed.
 - **The elements are always numbered from 0.**
+
+If a collection does need to change after it's created, use a [mutable collection](mutable-collections.md).

@@ -13,6 +13,7 @@ use Programster\Collections\Exceptions\OutOfBoundsException;
 use Programster\Collections\Exceptions\UnsupportedOperationException;
 use Programster\Collections\Sort;
 use Programster\Collections\Testing\Fixtures\CollectionWithExtraParameter;
+use Programster\Collections\Testing\Fixtures\MistypedReadonlyCollection;
 use Programster\Collections\Testing\Fixtures\OtherUserCollection;
 use Programster\Collections\Testing\Fixtures\ReadonlyStringCollection;
 use Programster\Collections\Testing\Fixtures\UntypedUserCollection;
@@ -104,7 +105,7 @@ $smoke->run("readonly: column reads public properties and methods", function () 
 $smoke->run("readonly: sort returns a new, sorted collection", function () use ($users, $getNames): void {
     SmokeTest::assertSame(['Ann', 'Bob', 'Cat'], $getNames($users->sort('name')), "by a property");
     SmokeTest::assertSame(['Bob', 'Cat', 'Ann'], $getNames($users->sort('getAge')), "by a method");
-    SmokeTest::assertSame(['Cat', 'Bob', 'Ann'], $getNames($users->sort('name', Sort::Descending)), "descending");
+    SmokeTest::assertSame(['Cat', 'Bob', 'Ann'], $getNames($users->sort('name', Sort::DESCENDING)), "descending");
     SmokeTest::assertSame(['Bob', 'Ann', 'Cat'], $getNames($users), "the original is unchanged");
     $strings = new ReadonlyStringCollection('b', 'c', 'a');
     SmokeTest::assertSame(['a', 'b', 'c'], $strings->sort()->toArray(), "by the elements themselves");
@@ -177,6 +178,14 @@ $smoke->run("readonly: rejects an element of the wrong type, even without a type
     };
 
     SmokeTest::expectException(InvalidArgumentException::class, $createWithString, "was given string");
+});
+
+$smoke->run("readonly: rejects a getType() that names a type that doesn't exist", function (): void {
+    $createMistyped = function (): void {
+        new MistypedReadonlyCollection(new User('Ann', 40));
+    };
+
+    SmokeTest::expectException(\LogicException::class, $createMistyped, "\"Usr\"");
 });
 
 $smoke->run("readonly: rejects a constructor that takes more than the elements", function (): void {

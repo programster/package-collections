@@ -1,10 +1,78 @@
 # Upgrading
 
+- [From 1.2.0 to 2.0.0](#from-120-to-200)
+    - [Changes you need to make](#changes-you-need-to-make)
+    - [Changes in behaviour](#changes-in-behaviour)
+    - [New features](#new-features)
 - [From 1.1.0 to 1.2.0](#from-110-to-120)
 - [From 1.0.0 to 1.1.0](#from-100-to-110)
 - [From 0.1.0 to 1.0.0](#from-010-to-100)
 
 What changed in each release, and what, if anything, you need to change in your code when upgrading.
+
+## From 1.2.0 to 2.0.0
+2.0.0 rewrites the mutable `AbstractCollection`, so it has the same methods as readonly collections, along with the
+ones for changing it, and follows the same defensive principles. Its methods are similar to ramsey/collection's, so
+they'll feel familiar, but it isn't compatible with ramsey/collection, as in places it works differently, to catch
+mistakes as early as possible.
+
+### Changes you need to make
+- **Mutable collections: pass the elements on to the parent constructor, and give the collection a `getType()`.** The
+  element type is no longer the constructor's first argument, and the base constructor is protected, so every
+  collection must declare one, taking its elements as a typed variadic:
+
+  ```php
+  // 1.x
+  public function __construct(User ...$users)
+  {
+      parent::__construct(User::class, ...$users);
+  }
+
+  // 2.0.0
+  public function __construct(User ...$users)
+  {
+      parent::__construct(...$users);
+  }
+
+  public function getType(): string { return User::class; }
+  ```
+
+- **Mutable collections: `filter()` returns a new collection, and leaves the original as it was.** In 1.x, it removed
+  elements from the collection itself, so `$users->filter($callback);` on its own line now does nothing. Use the
+  collection it returns: `$users = $users->filter($callback);`.
+- **Mutable collections no longer extend PHP's `ArrayObject`**, as `ArrayObject::exchangeArray()` replaced the
+  elements without checking their type. Its methods are replaced by:
+  - `append($x)` and `appendMultiple($xs)`: `add($x)` (or `$collection[] = $x`), once for each element.
+  - `getArrayCopy()`: `toArray()`.
+  - `asort()`, `uasort()` and the other sorts: `sort()`, which returns a new, sorted collection.
+  - `exchangeArray($xs)`: `clear()`, then `add()` each element, or create a new collection.
+  - `instanceof \ArrayObject` checks: `instanceof CollectionInterface`.
+- **Mutable collections: an element of the wrong type throws an `InvalidArgumentException`**, from
+  `Programster\Collections\Exceptions`, rather than a plain `\Exception`. It still extends `\Exception`, so
+  `catch (\Exception $e)` still catches it.
+- **Both kinds: `Sort`'s cases are now `Sort::ASCENDING` and `Sort::DESCENDING`**, rather than `Sort::Ascending` and
+  `Sort::Descending`, to match how the package's other enums are named.
+- **Both kinds: `getType()` must name a type that exists.** It's now checked the first time each collection is created,
+  and throws a `\LogicException` if it isn't a class, interface or enum that exists, or one of the type names listed in
+  [Readonly collections](readonly-collections.md#creating-a-collection). In 1.2.0, a typo meant every element was
+  rejected.
+
+### Changes in behaviour
+- **Reading a key that isn't there throws an `OutOfBoundsException`**, rather than giving a warning and `null`.
+- **Looping over a mutable collection goes over a copy of its elements**, so adding to it during the loop doesn't
+  change what the loop goes over.
+- **Unserializing a mutable collection checks each element's type**, so a changed serialized string can't put an element
+  of the wrong type in it.
+
+### New features
+- **The mutable collection has the readonly collection's methods**, and ones for changing it: `add()`, `remove()`
+  (which throws if the element isn't there) and `clear()`, along with array syntax. See
+  [Mutable collections](mutable-collections.md).
+- **`CollectionInterface` and `ArrayInterface`**, which the mutable collection implements.
+- **More element types, for both kinds of collection**: as well as a class, interface or enum, `getType()` can return
+  `"array"`, `"bool"`, `"callable"`, `"float"`, `"int"`, `"null"`, `"numeric"`, `"object"`, `"resource"`, `"scalar"`,
+  `"string"` or `"mixed"`. 1.2.0's readonly collections only allowed `"string"`, `"int"`, `"float"` and `"bool"`.
+- **`column()`, `sort()` and `where()` can read an array's keys**, for a collection of arrays.
 
 ## From 1.1.0 to 1.2.0
 Nothing needs to change in your code.

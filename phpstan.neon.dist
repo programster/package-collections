@@ -19,9 +19,14 @@ parameters:
         -
             identifier: argument.type
             path: testing/tests/AbstractCollectionTest.php
-            count: 1
+            count: 3
         -
             identifier: offsetAssign.valueType
+            path: testing/tests/AbstractCollectionTest.php
+            count: 2
+        # This test deliberately creates a collection with no constructor of its own, to check it's refused.
+        -
+            identifier: new.protectedConstructor
             path: testing/tests/AbstractCollectionTest.php
             count: 1
         -

@@ -1,7 +1,8 @@
 <?php
 
 /*
- * A collection of users using the mutable AbstractCollection, for testing it.
+ * A mutable collection of users, made the way the package's documentation recommends, with a typed variadic
+ * constructor.
  */
 
 namespace Programster\Collections\Testing\Fixtures;
@@ -15,6 +16,9 @@ final class MutableUserCollection extends AbstractCollection
 {
     public function __construct(User ...$users)
     {
-        parent::__construct(User::class, ...$users);
+        parent::__construct(...$users);
     }
+
+
+    public function getType(): string { return User::class; }
 }

@@ -20,10 +20,15 @@ PHP Collections Package
 Strictly typed collections for PHP, so that a collection can only ever hold the type of element it's meant to, and
 your IDE and PHPStan know what's in it.
 
-The collections have the same interface as [ramsey/collection](https://github.com/ramsey/collection) wherever
-possible, so they can act as a drop-in replacement, with the added ability to have readonly collections for defensive
-programming: once a readonly collection has been created, nothing can add to it, remove from it or replace its
-elements, so it's safe to hand to other code, or to keep one you were given, without copying it to protect it.
+The collections are similar to [ramsey/collection](https://github.com/ramsey/collection)'s, so they'll feel familiar,
+but they aren't compatible with it. They're built around defensive programming, so in places they work differently,
+to catch mistakes as early as possible. There are two kinds:
+
+- **Readonly collections** (`AbstractReadonlyCollection`) can't be changed once they're created: nothing can add to
+  one, remove from it or replace its elements, so it's safe to hand to other code, or to keep one you were given,
+  without copying it to protect it. Use these wherever a collection doesn't need to change.
+- **Mutable collections** (`AbstractCollection`) can be changed after they're created, for when one genuinely needs to
+  be. Their elements are still checked as they're added.
 
 ## Requirements
 PHP 8.2, 8.3, 8.4 or 8.5. It has no other dependencies.
@@ -71,7 +76,7 @@ $users = new UserCollection(
 
 // Methods that would change a collection return a new one instead, and leave the original as it was.
 $byName = $users->sort('name');
-$oldestFirst = $users->sort('age', Sort::Descending);
+$oldestFirst = $users->sort('age', Sort::DESCENDING);
 $withNewUser = $users->merge(new UserCollection(new User("Added User", 20)));
 
 print "Sorted by name: " . implode(", ", $byName->column('name')) . PHP_EOL;

@@ -1,5 +1,6 @@
 # Runs lint, the smoke tests and PHPStan on every supported version of PHP, using the same script as running them
 # locally (testing/run-all-php-versions.sh), which tests each version in its own Docker container.
+# The results are also written as annotations (testing/github-annotations.sh), which can be read without logging in.
 # The README's "Tests" badge shows the result of the latest run on the default branch.
 name: Tests
 
@@ -36,4 +37,11 @@ jobs:
               run: composer install --no-interaction --no-progress --prefer-dist
 
             - name: Run lint, the tests and PHPStan on every supported version of PHP
-              run: sh testing/run-all-php-versions.sh
+              run: |
+                  # GitHub runs bash with -e, which would stop here if the tests failed, so catch the exit code instead.
+                  # pipefail (which GitHub also sets) makes it the tests' exit code, rather than tee's.
+                  set -o pipefail
+                  status=0
+                  sh testing/run-all-php-versions.sh 2>&1 | tee test-output.txt || status=$?
+                  bash testing/github-annotations.sh "Linux" test-output.txt "$status"
+                  exit $status
