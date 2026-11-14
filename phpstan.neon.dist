@@ -1,0 +1,43 @@
+# PHPStan settings. Run with: vendor/bin/phpstan
+parameters:
+    level: 10
+    phpVersion:
+        min: 80200
+        max: 80599
+    paths:
+        - src
+        - testing
+    ignoreErrors:
+        # The methods that return a new collection create it with new static(), passing just the elements. PHPStan
+        # can't know that's safe, as each subclass narrows the constructor to a typed variadic, but the base
+        # constructor checks every subclass's constructor takes just the elements, the first time it's used.
+        -
+            identifier: new.static
+            path: src/AbstractReadonlyCollection.php
+            count: 4
+        # These tests deliberately pass the wrong type, to check that it's rejected when the code runs.
+        -
+            identifier: argument.type
+            path: testing/tests/AbstractCollectionTest.php
+            count: 1
+        -
+            identifier: offsetAssign.valueType
+            path: testing/tests/AbstractCollectionTest.php
+            count: 1
+        -
+            identifier: argument.type
+            path: testing/tests/AbstractReadonlyCollectionTest.php
+            count: 2
+        -
+            identifier: argument.type
+            path: testing/Fixtures/UntypedUserCollection.php
+            count: 1
+        # Accessors are one line, with no docblock, so SmokeTest::getFailures() can't say its array holds strings.
+        -
+            identifier: missingType.iterableValue
+            path: testing/SmokeTest.php
+            count: 1
+        -
+            identifier: encapsedStringPart.nonString
+            path: testing/main.php
+            count: 1

@@ -1,9 +1,9 @@
 {
     "name": "programster/collections",
     "type": "library",
-    "description": "A simple library to simplify the creation of strict type arrays/collections.",
+    "description": "Strictly typed collections, including readonly ones, with the same interface as ramsey/collection wherever possible.",
     "keywords": ["collection","library"],
-    "homepage": "https://github.com/programster/package-core-libs",
+    "homepage": "https://github.com/programster/package-collections",
     "license": "MIT",
     "authors": [
         {
@@ -14,15 +14,21 @@
         }
     ],
     "require": {
-        "php": ">=8.2.0"
+        "php": "^8.2"
     },
     "require-dev" : {
+        "phpstan/phpstan": "^2.3"
     },
     "suggest": {
     },
     "autoload": {
         "psr-4": {
             "Programster\\Collections\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Programster\\Collections\\Testing\\": "testing/"
         }
     }
 }

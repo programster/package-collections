@@ -1,48 +1,96 @@
-# PHP Collections Package
-A package to simplify the creation of strict type arrays in PHP.
+PHP Collections Package
+=======================
 
+[![Tests](https://github.com/programster/package-collections/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/programster/package-collections/actions/workflows/tests.yml)
 
-## Example Usage
-The example below creates a collection of users and sorts them by their name.
+## Contents
+- [About](#about)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Readonly collections](docs/readonly-collections.md)
+- [Mutable collections](docs/mutable-collections.md)
+- [Exceptions](docs/exceptions.md)
+- [Upgrading](docs/upgrading.md)
+- [Testing](docs/testing.md)
+- [Design principles](#design-principles)
+- [License](#license)
 
+## About
+Strictly typed collections for PHP, so that a collection can only ever hold the type of element it's meant to, and
+your IDE and PHPStan know what's in it.
+
+The collections have the same interface as [ramsey/collection](https://github.com/ramsey/collection) wherever
+possible, so they can act as a drop-in replacement, with the added ability to have readonly collections for defensive
+programming: once a readonly collection has been created, nothing can add to it, remove from it or replace its
+elements, so it's safe to hand to other code, or to keep one you were given, without copying it to protect it.
+
+## Requirements
+PHP 8.2, 8.3, 8.4 or 8.5. It has no other dependencies.
+
+## Installation
+```bash
+composer require programster/collections
+```
+
+## Quick start
+Create a collection for your type by extending `AbstractReadonlyCollection` with a readonly class, whose constructor
+takes just the elements as a typed variadic, so that PHP rejects an element of the wrong type where it's created:
 
 ```php
 <?php
 
+use Programster\Collections\AbstractReadonlyCollection;
+use Programster\Collections\Sort;
+
 require_once(__DIR__ . '/vendor/autoload.php');
 
-class User
+final readonly class User
 {
-    public function __construct(public readonly string $name){}
+    public function __construct(public string $name, public int $age) {}
 }
 
-class UserCollection extends \Programster\Collections\AbstractCollection
+/**
+ * @extends AbstractReadonlyCollection<User>
+ */
+final readonly class UserCollection extends AbstractReadonlyCollection
 {
-    public function __construct(User ...$elements)
+    public function __construct(User ...$users)
     {
-        parent::__construct(User::class, ...$elements);
+        parent::__construct(...$users);
     }
+
+    public function getType(): string { return User::class; }
 }
 
-$names = new UserCollection(
-    new User("Programster"),
-    new User("Bar"),
-    new User("Foo"),
+$users = new UserCollection(
+    new User("Programster", 40),
+    new User("Bar", 25),
+    new User("Foo", 33),
 );
 
-// Demonstrate that can append a user, like with a normal array.
-$names[] = new User("Added User");
+// Methods that would change a collection return a new one instead, and leave the original as it was.
+$byName = $users->sort('name');
+$oldestFirst = $users->sort('age', Sort::Descending);
+$withNewUser = $users->merge(new UserCollection(new User("Added User", 20)));
 
-$sortByNameFunc = function(User $name1, User $name2){
-    return $name1->name <=> $name2->name;
-};
-
-$names->uasort($sortByNameFunc);
-print "Users sorted by name: " . print_r($names, true) . PHP_EOL;
+print "Sorted by name: " . implode(", ", $byName->column('name')) . PHP_EOL;
+print "The oldest is " . $oldestFirst->first()->name . PHP_EOL;
+print "There are now " . count($withNewUser) . " users, and still " . count($users) . " in the original." . PHP_EOL;
 ```
 
+See [Readonly collections](docs/readonly-collections.md) for every method, and
+[Mutable collections](docs/mutable-collections.md) for a collection that can be changed after it's created.
 
+## Design principles
+- **Mistakes are caught as they're typed.** A collection's constructor takes a typed variadic, so PHP and your IDE
+  reject an element of the wrong type where the collection is made. A readonly collection has no array syntax, so
+  writing to one can't even be expressed, rather than failing when the code runs.
+- **Readonly by default.** Use a readonly collection unless the collection genuinely needs to change after it's
+  created.
+- **Failures throw.** Methods throw a specific exception, rather than returning `null` or `false`. Every exception the
+  package throws implements `CollectionException`, so you can catch them all at once.
+- **No dependencies.**
 
-
-
-
+## License
+MIT. See [LICENSE](LICENSE).
