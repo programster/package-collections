@@ -12,7 +12,8 @@ A map holds elements of one type, each looked up by a string key, e.g. users by 
 are two kinds:
 
 - **Readonly maps** (`AbstractReadonlyMap`) can't be changed once they're created. `with()` and `without()` return a
-  new map instead, and leave the original as it was. Use one wherever a lookup table doesn't need to change.
+  new map instead, and leave the original as it was. Use one wherever a lookup table doesn't need to change. Array
+  syntax can read one (`$users['ann']`), but writing to one with it throws.
 - **Mutable maps** (`AbstractMap`) can be changed after they're created, with `put()`, `remove()` and `clear()`, or
   array syntax. Their elements are still checked as they're added.
 
@@ -81,12 +82,16 @@ includes:
     - vendor/programster/collections/extension.neon
 ```
 
-Its errors have the identifier `collections.mapKeys`. To spread an array into a map, give it string keys, e.g.
+This also loads the package's rule that reports writing to a readonly map or collection with array syntax (see
+[Readonly maps](#readonly-maps-with-and-without)). The rule for keys reports its errors with the identifier `collections.mapKeys`. To spread an array into a map, give it string keys, e.g.
 `array<string, User>`, so PHPStan knows they're strings.
 
 ## Reading elements
 ```php
 $bobAgain = $users->get('bob');           // Bob.
+$alsoBob = $users['bob'];                 // The same, with array syntax.
+$hasAnnKey = isset($users['ann']);        // true
+$noCat = $users['cat'] ?? null;           // null, as there's no "cat".
 $hasCat = $users->containsKey('cat');     // false.
 $hasAnn = $users->contains($ann);         // true, as it's the same object.
 $names = $users->keys();                  // ["ann", "bob"]
@@ -99,8 +104,8 @@ foreach ($users as $key => $user)
 }
 ```
 
-`get()` throws a `NoSuchElementException` for a key that isn't there, rather than returning `null`, so check with
-`containsKey()` first if there might not be one:
+`get()` and `$users['cat']` throw a `NoSuchElementException` for a key that isn't there, rather than returning
+`null`, so check with `containsKey()`, `isset()` or `??` first if there might not be one:
 
 ```php
 // Throws NoSuchElementException
@@ -121,8 +126,17 @@ $stillTwo = count($users);                // 2, as $users hasn't changed.
 `without()` throws a `NoSuchElementException` if the key isn't there, as removing it couldn't do anything, so it's
 likely to be a mistake.
 
-There's no array syntax on a readonly map, so `$users['cat'] = $cat` can't even be written, rather than failing when it
-runs. Use `get()` and `containsKey()` to read it.
+Writing to a readonly map with array syntax (`$users['cat'] = $cat` or `unset($users['ann'])`) throws an
+`UnsupportedOperationException`, as it can't be changed. Use `with()` and `without()` instead:
+
+```php
+// Throws UnsupportedOperationException
+$users['cat'] = $cat;
+```
+
+PHP can't refuse that where it's written, as reading and writing with array syntax come together (`ArrayAccess`), so
+the package's PHPStan rules (see [above](#catching-missing-keys-with-phpstan)) report it there instead, with the
+identifier `collections.readonlyWrite`.
 
 ## Mutable maps
 A mutable map has the same methods for reading it, along with `put()`, `remove()` and `clear()`, and array syntax:
@@ -191,6 +205,7 @@ work differently in places, to catch mistakes as early as possible:
 - **An element without a key is rejected**, rather than being given a number.
 - **`get()` and reading a missing key with array syntax throw**, rather than returning `null`. So does removing a key
   that isn't there.
-- **A readonly map has no array syntax**, and `with()` and `without()` return new maps.
+- **A readonly map's array syntax only reads**, and writing with it throws (and is reported by the package's PHPStan
+  rule). `with()` and `without()` return new maps instead.
 - **`filter()` always returns a new map**, and `map()` returns an array, as the results can be of any type.
 - **`keys()` and `values()`** are what ramsey/collection's maps call `keys()` and `toArray()`'s values.

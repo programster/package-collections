@@ -1,5 +1,5 @@
-# Runs just the package's rule (extension.neon) over MapKeysExamples.php, for testing/tests/PhpStanRuleTest.php. Level 0
-# keeps PHPStan's own checks out of the way, as the rule runs at every level.
+# Runs just the package's rules (extension.neon) over the examples, for testing/tests/PhpStanRuleTest.php. Level 0
+# keeps PHPStan's own checks out of the way, as the rules run at every level.
 includes:
     - ../../extension.neon
 
@@ -7,3 +7,4 @@ parameters:
     level: 0
     paths:
         - MapKeysExamples.php
+        - ReadonlyWriteExamples.php

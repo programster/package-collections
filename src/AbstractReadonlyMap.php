@@ -5,9 +5,10 @@
  * created. Methods that would change it (with() and without()) return a new map instead, and leave the original as it
  * was. Use one wherever a lookup table doesn't need to change after it's created.
  *
- * It's similar to ramsey/collection's typed maps, so it'll feel familiar, but it isn't compatible with them. It
- * deliberately doesn't support array syntax (ArrayAccess), as $map['key'] = $x could then only fail when it runs,
- * rather than being caught by PHP and the IDE as it's typed. Use get() and containsKey() instead.
+ * It's similar to ramsey/collection's typed maps, so it'll feel familiar, but it isn't compatible with them. Array
+ * syntax can read it ($map['key'], isset() and ??), but writing to it ($map['key'] = $x or unset($map['key'])) throws
+ * an UnsupportedOperationException. PHP can't refuse those where they're written, so the package's PHPStan rule
+ * (ReadonlyWriteRule) reports them there instead.
  *
  * To create one, extend it with a readonly class whose constructor takes just the elements, as a typed variadic, and
  * passes them on. The elements' type is read from the constructor, e.g.:
@@ -34,13 +35,15 @@ namespace Programster\Collections;
 
 use Programster\Collections\Exceptions\InvalidArgumentException;
 use Programster\Collections\Exceptions\NoSuchElementException;
+use Programster\Collections\Exceptions\UnsupportedOperationException;
 use Programster\Collections\Internal\MapTools;
 
 /**
  * @template T
  * @implements \IteratorAggregate<string, T>
+ * @implements \ArrayAccess<string, T>
  */
-abstract readonly class AbstractReadonlyMap implements \Countable, \IteratorAggregate, \JsonSerializable
+abstract readonly class AbstractReadonlyMap implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerializable
 {
     use MapTools;
 
@@ -267,5 +270,75 @@ abstract readonly class AbstractReadonlyMap implements \Countable, \IteratorAggr
     public function jsonSerialize(): array|\stdClass
     {
         return (count($this->m_elements) === 0) ? new \stdClass() : $this->m_elements;
+    }
+
+
+    /**
+     * Whether there's an element for a key, for isset($map['key']) (and ??). False for a key that isn't a string.
+     * @param mixed $offset - the key.
+     * @return bool
+     */
+    public function offsetExists(mixed $offset): bool
+    {
+        return is_string($offset) && array_key_exists($offset, $this->m_elements);
+    }
+
+
+    /**
+     * The element for a key, for $map['key']. The same as get().
+     * @param mixed $offset - the key.
+     * @return T
+     * @throws NoSuchElementException - if there isn't one, or the key isn't a string. (isset() and ?? check first.)
+     */
+    public function offsetGet(mixed $offset): mixed
+    {
+        if (!is_string($offset))
+        {
+            throw new NoSuchElementException(
+                "A " . static::class . "'s keys are strings, not " . get_debug_type($offset) . "."
+            );
+        }
+
+        return $this->get($offset);
+    }
+
+
+    /**
+     * Always throws, as the map can't be changed. It's only here because ArrayAccess needs it, so that $map['key'] can
+     * be read. The package's PHPStan rule reports $map['key'] = $x where it's written.
+     *
+     * @param mixed $offset - the key.
+     *
+     * @param mixed $value - the element.
+     *
+     * @return never
+     *
+     * @throws UnsupportedOperationException - always.
+     */
+    public function offsetSet(mixed $offset, mixed $value): never
+    {
+        throw new UnsupportedOperationException(
+            "A " . static::class . " can't be changed, so it can't be written to with array syntax. Use with() to get "
+            . "a new map with the element."
+        );
+    }
+
+
+    /**
+     * Always throws, as the map can't be changed. It's only here because ArrayAccess needs it, so that $map['key'] can
+     * be read. The package's PHPStan rule reports unset($map['key']) where it's written.
+     *
+     * @param mixed $offset - the key.
+     *
+     * @return never
+     *
+     * @throws UnsupportedOperationException - always.
+     */
+    public function offsetUnset(mixed $offset): never
+    {
+        throw new UnsupportedOperationException(
+            "A " . static::class . " can't be changed, so an element can't be unset. Use without() to get a new map "
+            . "without it."
+        );
     }
 }

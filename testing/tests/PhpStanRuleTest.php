@@ -1,18 +1,23 @@
 <?php
 
 /*
- * Smoke test for the package's PHPStan rule (MapKeysRule). It runs PHPStan over testing/PhpStanRuleFixtures, and checks
- * the rule reports exactly the lines that are marked to be, so it catches each mistake and nothing that's correct.
- * These are run by testing/main.php, which provides $smoke.
+ * Smoke test for the package's PHPStan rules (MapKeysRule and ReadonlyWriteRule). It runs PHPStan over
+ * testing/PhpStanRuleFixtures, and checks each rule reports exactly the lines in its examples that are marked to be, so
+ * it catches each mistake and nothing that's correct. These are run by testing/main.php, which provides $smoke.
  */
 
 use Programster\Collections\Testing\SmokeTest;
 
 /** @var \Programster\Collections\Testing\SmokeTest $smoke */
 
-$testMapKeysRule = function (): void {
-    $fixtures = __DIR__ . '/../PhpStanRuleFixtures';
-    $examples = "{$fixtures}/MapKeysExamples.php";
+$fixtures = __DIR__ . '/../PhpStanRuleFixtures';
+
+/*
+ * Check a rule reports exactly the lines of its examples file that end in "// reported" (once for each "reported"),
+ * and that nothing else in the file is reported, by running PHPStan over just that file, with just the package's rules.
+ */
+$testRule = function (string $examplesFile, string $identifier) use ($fixtures): void {
+    $examples = "{$fixtures}/{$examplesFile}";
     $lines = file($examples);
     $expected = [];
 
@@ -24,7 +29,7 @@ $testMapKeysRule = function (): void {
     // Each "reported" in the comment after a statement is one error the rule should report on its line.
     foreach ($lines as $index => $line)
     {
-        if (preg_match('/;\s*\/\/ (reported(?:, reported)*)\s*$/', $line, $matches) === 1)
+        if (preg_match('/[;}]\s*\/\/ (reported(?:, reported)*)\s*$/', $line, $matches) === 1)
         {
             $expected[$index + 1] = substr_count($matches[1], 'reported');
         }
@@ -32,7 +37,7 @@ $testMapKeysRule = function (): void {
 
     $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../../vendor/phpstan/phpstan/phpstan')
         . ' analyse --no-progress --error-format=json --memory-limit=512M -c '
-        . escapeshellarg("{$fixtures}/phpstan.neon") . ' 2>/dev/null';
+        . escapeshellarg("{$fixtures}/phpstan.neon") . ' ' . escapeshellarg($examples) . ' 2>/dev/null';
 
     $output = shell_exec($command);
     $result = is_string($output) ? json_decode($output, true) : null;
@@ -51,7 +56,7 @@ $testMapKeysRule = function (): void {
 
         foreach ($messages as $message)
         {
-            $isRule = is_array($message) && ($message['identifier'] ?? null) === 'collections.mapKeys';
+            $isRule = is_array($message) && ($message['identifier'] ?? null) === $identifier;
             $line = is_array($message) && is_int($message['line'] ?? null) ? $message['line'] : 0;
 
             if ($isRule)
@@ -60,13 +65,27 @@ $testMapKeysRule = function (): void {
             }
             else
             {
-                throw new RuntimeException("PHPStan reported something other than the rule: " . json_encode($message));
+                $json = json_encode($message);
+                throw new RuntimeException("PHPStan reported something other than {$identifier}: {$json}");
             }
         }
     }
 
     ksort($reported);
-    SmokeTest::assertSame($expected, $reported, "the lines the rule reports, and how many times");
+    SmokeTest::assertSame($expected, $reported, "the lines {$identifier} reports, and how many times");
+};
+
+$testMapKeysRule = function () use ($testRule): void {
+    $testRule('MapKeysExamples.php', 'collections.mapKeys');
+};
+
+$testReadonlyWriteRule = function () use ($testRule): void {
+    $testRule('ReadonlyWriteExamples.php', 'collections.readonlyWrite');
 };
 
 $smoke->run("PHPStan rule: reports maps whose elements won't have string keys, and nothing else", $testMapKeysRule);
+
+$smoke->run(
+    "PHPStan rule: reports writes to readonly collections and maps with array syntax, and nothing else",
+    $testReadonlyWriteRule
+);

@@ -1,5 +1,6 @@
 # Upgrading
 
+- [From 3.0.0 to 3.1.0](#from-300-to-310)
 - [From 2.2.0 to 3.0.0](#from-220-to-300)
 - [From 2.1.1 to 2.2.0](#from-211-to-220)
 - [From 2.1.0 to 2.1.1](#from-210-to-211)
@@ -13,6 +14,19 @@
 - [From 0.1.0 to 1.0.0](#from-010-to-100)
 
 What changed in each release, and what, if anything, you need to change in your code when upgrading.
+
+## From 3.0.0 to 3.1.0
+Nothing needs to change in your code.
+
+- **New: readonly collections and maps can be read with array syntax.** `AbstractReadonlyCollection` and
+  `AbstractReadonlyMap` now implement `ArrayAccess`, so `$users[0]` (or `$users['ann']` for a map) does the same as
+  `get()`, and `isset()` and `??` work. Writing with array syntax (`$users[] = $user`, `$users[0] = $user` or
+  `unset($users[0])`) throws an `UnsupportedOperationException`, as they can't be changed. A collection or map of your
+  own that already declares any of `offsetExists()`, `offsetGet()`, `offsetSet()` or `offsetUnset()` must now match
+  `ArrayAccess`'s. See [Array syntax](readonly-collections.md#array-syntax).
+- **New: a PHPStan rule for writes to readonly collections and maps.** It reports each write to one with array syntax
+  where it's written, with the identifier `collections.readonlyWrite`. It's loaded along with the rule for maps' keys,
+  automatically with phpstan/extension-installer.
 
 ## From 2.2.0 to 3.0.0
 The elements' type is now read from the constructor, so there's no `getType()` to write, and it can't be written

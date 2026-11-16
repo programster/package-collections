@@ -20,7 +20,7 @@
         "phpstan/phpstan": "^2.3"
     },
     "suggest": {
-        "phpstan/extension-installer": "Loads this package's PHPStan rule (extension.neon), which reports maps created with elements that won't have string keys."
+        "phpstan/extension-installer": "Loads this package's PHPStan rules (extension.neon), which report maps created with elements that won't have string keys, and writes to readonly collections and maps with array syntax."
     },
     "autoload": {
         "psr-4": {

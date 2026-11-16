@@ -36,7 +36,7 @@ They're all in the `Programster\Collections\Exceptions` namespace:
 | `NoSuchElementException` | `\RuntimeException` | `first()` or `last()` is called on an empty collection, or `remove()` is given an element the collection doesn't hold. |
 | `CollectionMismatchException` | `\RuntimeException` | `merge()`, `diff()` or `intersect()` is given a collection of a different class. |
 | `InvalidPropertyOrMethod` | `\RuntimeException` | `column()`, `sort()` or `where()` is given a name that isn't a public property, method or key of the elements. |
-| `UnsupportedOperationException` | `\RuntimeException` | `column()`, `sort()` or `where()` is given a name, but the elements are scalars. |
+| `UnsupportedOperationException` | `\RuntimeException` | `column()`, `sort()` or `where()` is given a name, but the elements are scalars, or a readonly collection or map is written to with array syntax. |
 
 Separately, a collection or map whose constructor takes anything other than its elements, or doesn't declare their one
 type, throws a `\LogicException` the first time it's created, as that's a mistake in the class, rather than something

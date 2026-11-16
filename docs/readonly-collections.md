@@ -3,6 +3,7 @@
 - [Creating a collection](#creating-a-collection)
 - [Methods](#methods)
 - [Reading elements](#reading-elements)
+- [Array syntax](#array-syntax)
 - [Sorting, filtering and combining](#sorting-filtering-and-combining)
 - [Coming from ramsey/collection](#coming-from-ramseycollection)
 
@@ -59,7 +60,7 @@ are dropped.
 
 | Method | What it does |
 |---|---|
-| `get(int $index)` | Gets the element at a position, or throws `OutOfBoundsException`. |
+| `get(int $index)` | Gets the element at a position, or throws `OutOfBoundsException`. `$users[0]` does the same. |
 | `first()` / `last()` | Gets the first or last element, or throws `NoSuchElementException` if it's empty. |
 | `contains($element, bool $strict = true)` | Checks whether the collection holds an element. |
 | `column(string $propertyOrMethod)` | Gets the value of a public property, method or array key from every element. |
@@ -73,7 +74,6 @@ are dropped.
 | `intersect(self $other)` | Returns a new collection of the elements that are in both. |
 | `toArray()` | Gets the elements as an array. Changing the array doesn't change the collection. |
 | `isEmpty()`, `count()`, `getType()` | Check whether there are any elements, count them, or get their type. |
-
 | `jsonSerialize()` | Gives a JSON array of the elements, so `json_encode($collection)` encodes them. |
 
 A collection can also be looped over with `foreach`, and passed to `count()` and `json_encode()`.
@@ -81,7 +81,8 @@ A collection can also be looped over with `foreach`, and passed to `count()` and
 ## Reading elements
 ```php
 $first = $users->get(0);         // Ann, by position.
-$alsoFirst = $users->first();    // The same.
+$alsoFirst = $users[0];          // The same, with array syntax.
+$alsoAnn = $users->first();      // The same again.
 $last = $users->last();          // Cat.
 $hasAnn = $users->contains($ann);       // true, as it's the same object.
 $names = $users->column('name');        // ["Ann", "Bob", "Cat"], from a public property.
@@ -104,6 +105,33 @@ $emails = $users->column('email');
 
 `contains()`, `diff()` and `intersect()` compare elements with `===`, so an object only matches itself, not an equal
 copy of it. Pass `false` as `contains()`'s second argument to compare with `==` instead.
+
+## Array syntax
+A readonly collection can be read with array syntax, by position, as well as with `get()`:
+
+```php
+$bobAgain = $users[1];                  // Bob.
+$hasThird = isset($users[2]);           // true
+$fourth = $users[3] ?? null;            // null, as there are only three.
+```
+
+Reading a position that isn't there throws an `OutOfBoundsException`, as `get()` does. `isset()` and `??` still work,
+as they check first.
+
+Writing to it with array syntax (`$users[] = $user`, `$users[0] = $user` or `unset($users[0])`) throws an
+`UnsupportedOperationException`, as the collection can't be changed. Use `merge()` to add elements, and `filter()` to
+leave some out:
+
+```php
+// Throws UnsupportedOperationException
+$users[] = new User("Dan", 50);
+```
+
+PHP can't refuse those where they're written, as reading and writing with array syntax come together (`ArrayAccess`).
+So the package comes with a PHPStan rule that reports every write to a readonly collection or map with array syntax
+where it's written, so the mistake shows up in PHPStan, and in an IDE that runs it, rather than when the code runs.
+It's loaded the same way as the [rule for maps' keys](maps.md#catching-missing-keys-with-phpstan), and its errors have
+the identifier `collections.readonlyWrite`.
 
 ## Sorting, filtering and combining
 ```php
@@ -135,9 +163,9 @@ can't be changed:
 - **Every collection must have a typed variadic constructor**, rather than being created from an array, so PHP checks
   the elements' type where the collection is made.
 - **`Sort`'s cases are `Sort::ASCENDING` and `Sort::DESCENDING`.**
-- **There's no array syntax** (`ArrayAccess`), such as `$users[] = $user` or `$users[0]`. Writing to a collection
-  that way could only fail when the code runs, so it's left out, to be caught by PHP and your IDE as it's typed. Use
-  `get()` to read an element by its position.
+- **Array syntax only reads.** `$users[0]` and `isset($users[0])` work, but writing (`$users[] = $user`,
+  `$users[0] = $user` or `unset($users[0])`) throws an `UnsupportedOperationException`, and the package's PHPStan rule
+  reports it where it's written. See [Array syntax](#array-syntax).
 - **`map()` returns an array**, as its results can be of any type. Put them in a collection of their type if needed.
 - **The elements are always numbered from 0.**
 

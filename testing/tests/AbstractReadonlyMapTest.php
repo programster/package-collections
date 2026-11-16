@@ -6,6 +6,7 @@
 
 use Programster\Collections\Exceptions\InvalidArgumentException;
 use Programster\Collections\Exceptions\NoSuchElementException;
+use Programster\Collections\Exceptions\UnsupportedOperationException;
 use Programster\Collections\Testing\Fixtures\MapWithExtraParameter;
 use Programster\Collections\Testing\Fixtures\User;
 use Programster\Collections\Testing\Fixtures\UserMap;
@@ -68,6 +69,52 @@ $testReading = function () use ($ann, $bob): void {
 };
 
 $smoke->run("readonly map: reading elements by key", $testReading);
+
+$testReadingWithArraySyntax = function () use ($ann, $bob): void {
+    $users = new UserMap(ann: $ann, bob: $bob);
+
+    $getMissing = function () use ($users): void {
+        $users['cat'];
+    };
+
+    $getByInt = function () use ($users): void {
+        $users[0];
+    };
+
+    SmokeTest::assertSame($bob, $users['bob'], "['bob']");
+    SmokeTest::assertSame(true, isset($users['ann']), "isset() of a key that's there");
+    SmokeTest::assertSame(false, isset($users['cat']), "isset() of one that isn't");
+    SmokeTest::assertSame(false, isset($users[0]), "isset() of a key that isn't a string");
+    SmokeTest::assertSame($ann, $users['ann'] ?? null, "?? of a key that's there");
+    SmokeTest::assertSame(null, $users['cat'] ?? null, "?? of one that isn't");
+    SmokeTest::expectException(NoSuchElementException::class, $getMissing, "\"cat\"");
+    SmokeTest::expectException(NoSuchElementException::class, $getByInt, "keys are strings, not int");
+};
+
+$smoke->run("readonly map: reading elements with array syntax", $testReadingWithArraySyntax);
+
+$testWritingWithArraySyntax = function () use ($ann, $bob): void {
+    $users = new UserMap(ann: $ann);
+
+    $put = function () use ($users, $bob): void {
+        $users['bob'] = $bob;
+    };
+
+    $append = function () use ($users, $bob): void {
+        $users[] = $bob;
+    };
+
+    $unset = function () use ($users): void {
+        unset($users['ann']);
+    };
+
+    SmokeTest::expectException(UnsupportedOperationException::class, $put, "Use with()");
+    SmokeTest::expectException(UnsupportedOperationException::class, $append, "Use with()");
+    SmokeTest::expectException(UnsupportedOperationException::class, $unset, "Use without()");
+    SmokeTest::assertSame(['ann' => $ann], $users->toArray(), "the map's elements after trying to write to it");
+};
+
+$smoke->run("readonly map: writing with array syntax throws", $testWritingWithArraySyntax);
 
 $testIterating = function () use ($ann, $bob): void {
     $seen = [];

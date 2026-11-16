@@ -2,3 +2,4 @@
 # your project's phpstan.neon: includes: [vendor/programster/collections/extension.neon]
 rules:
     - Programster\Collections\PHPStan\MapKeysRule
+    - Programster\Collections\PHPStan\ReadonlyWriteRule

@@ -45,9 +45,10 @@ PHP 8.2, 8.3, 8.4 or 8.5. It has no other dependencies.
 composer require programster/collections
 ```
 
-If you use PHPStan, also install its extension installer, which loads the package's rule for maps (see
-[Maps](docs/maps.md#catching-missing-keys-with-phpstan)), so a map made with elements that won't have keys is reported
-where it's written:
+If you use PHPStan, also install its extension installer, which loads the package's rules, so a map made with elements
+that won't have keys (see [Maps](docs/maps.md#catching-missing-keys-with-phpstan)), or a write to a readonly collection
+or map with array syntax (see [Array syntax](docs/readonly-collections.md#array-syntax)), is reported where it's
+written:
 
 ```bash
 composer require --dev phpstan/extension-installer
@@ -104,13 +105,14 @@ See [Readonly collections](docs/readonly-collections.md) for every method,
 ## Design principles
 - **Mistakes are caught as they're typed.** A collection's constructor takes a typed variadic, so PHP and your IDE
   reject an element of the wrong type where the collection is made. The type is only written there, and read from it,
-  so it can't be written two different ways. A readonly collection has no array syntax, so
-  writing to one can't even be expressed, rather than failing when the code runs.
+  so it can't be written two different ways. A readonly collection can be read with array syntax (`$users[0]`), and
+  the package's PHPStan rule reports any write to one with it where it's written, rather than when it throws as the
+  code runs.
 - **Readonly by default.** Use a readonly collection unless the collection genuinely needs to change after it's
   created.
 - **Failures throw.** Methods throw a specific exception, rather than returning `null` or `false`. Every exception the
   package throws implements `CollectionException`, so you can catch them all at once.
-- **No dependencies.** PHPStan is only needed for the package's optional rule for maps.
+- **No dependencies.** PHPStan is only needed for the package's optional rules.
 
 ## License
 MIT. See [LICENSE](LICENSE).

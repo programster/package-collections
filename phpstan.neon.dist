@@ -12,7 +12,7 @@ parameters:
         - src
         - testing
     excludePaths:
-        # Examples of the mistakes the package's rule reports, which are on purpose (see
+        # Examples of the mistakes the package's rules report, which are on purpose (see
         # testing/tests/PhpStanRuleTest.php).
         - testing/PhpStanRuleFixtures
     ignoreErrors:
@@ -81,6 +81,16 @@ parameters:
             count: 1
         -
             identifier: collections.mapKeys
+            path: testing/tests/AbstractReadonlyMapTest.php
+            count: 3
+        # These tests deliberately write to readonly collections and maps with array syntax, to check that it throws
+        # when the code runs, as well as being reported by the rule.
+        -
+            identifier: collections.readonlyWrite
+            path: testing/tests/AbstractReadonlyCollectionTest.php
+            count: 4
+        -
+            identifier: collections.readonlyWrite
             path: testing/tests/AbstractReadonlyMapTest.php
             count: 3
         # These tests deliberately put the wrong type in a map, to check that it's rejected when the code runs.

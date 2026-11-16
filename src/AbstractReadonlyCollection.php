@@ -6,8 +6,9 @@
  *
  * It's similar to ramsey/collection's collections, so it'll feel familiar, but it isn't compatible with them. It has
  * none of the methods that would change it (add(), remove() and clear()): combine collections with merge() instead.
- * It also deliberately doesn't support array syntax (ArrayAccess), as $collection[] = $x could then only fail when it
- * runs, rather than being caught by PHP and the IDE as it's typed. Use get() to read an element by its position.
+ * Array syntax can read it ($collection[0], isset() and ??), but writing to it ($collection[] = $x, $collection[0] = $x
+ * or unset($collection[0])) throws an UnsupportedOperationException. PHP can't refuse those where they're written, so
+ * the package's PHPStan rule (ReadonlyWriteRule) reports them there instead.
  *
  * To create one, extend it with a readonly class whose constructor takes just the elements, as a typed variadic, and
  * passes them on. The elements' type is read from the constructor, e.g.:
@@ -37,8 +38,10 @@ use Programster\Collections\Internal\ElementTools;
 /**
  * @template T
  * @implements \IteratorAggregate<int, T>
+ * @implements \ArrayAccess<int, T>
  */
-abstract readonly class AbstractReadonlyCollection implements \Countable, \IteratorAggregate, \JsonSerializable
+abstract readonly class AbstractReadonlyCollection
+    implements \Countable, \IteratorAggregate, \ArrayAccess, \JsonSerializable
 {
     use ElementTools;
 
@@ -359,6 +362,78 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
     {
         return new \ArrayIterator($this->m_elements);
     }
+
+
+    /**
+     * Whether there's an element at a position, for isset($collection[0]) (and ??). False for one that isn't an int.
+     * @param mixed $offset - the position, starting from 0.
+     * @return bool
+     */
+    public function offsetExists(mixed $offset): bool
+    {
+        return is_int($offset) && array_key_exists($offset, $this->m_elements);
+    }
+
+
+    /**
+     * The element at a position, for $collection[0]. The same as get().
+     * @param mixed $offset - the position, starting from 0.
+     * @return T
+     * @throws OutOfBoundsException - if there's no element there, or the position isn't an int.
+     */
+    public function offsetGet(mixed $offset): mixed
+    {
+        if (!is_int($offset))
+        {
+            throw new OutOfBoundsException(
+                "A " . static::class . "'s elements are at int positions, not " . get_debug_type($offset) . "."
+            );
+        }
+
+        return $this->get($offset);
+    }
+
+
+    /**
+     * Always throws, as the collection can't be changed. It's only here because ArrayAccess needs it, so that
+     * $collection[0] can be read. The package's PHPStan rule reports $collection[] = $x and $collection[0] = $x where
+     * they're written.
+     *
+     * @param mixed $offset - the position.
+     *
+     * @param mixed $value - the element.
+     *
+     * @return never
+     *
+     * @throws UnsupportedOperationException - always.
+     */
+    public function offsetSet(mixed $offset, mixed $value): never
+    {
+        throw new UnsupportedOperationException(
+            "A " . static::class . " can't be changed, so it can't be written to with array syntax. Use merge() to get "
+            . "a new collection with more elements."
+        );
+    }
+
+
+    /**
+     * Always throws, as the collection can't be changed. It's only here because ArrayAccess needs it, so that
+     * $collection[0] can be read. The package's PHPStan rule reports unset($collection[0]) where it's written.
+     *
+     * @param mixed $offset - the position.
+     *
+     * @return never
+     *
+     * @throws UnsupportedOperationException - always.
+     */
+    public function offsetUnset(mixed $offset): never
+    {
+        throw new UnsupportedOperationException(
+            "A " . static::class . " can't be changed, so an element can't be unset. Use filter() to get a new "
+            . "collection without it."
+        );
+    }
+
 
 
     /**

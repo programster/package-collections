@@ -202,6 +202,62 @@ $smoke->run("readonly: refuses a constructor that doesn't declare one type", fun
     }
 });
 
+$testReadingWithArraySyntax = function () use ($users, $ann, $bob, $cat): void {
+    $getMissing = function () use ($users): void {
+        $users[3];
+    };
+
+    $getNegative = function () use ($users): void {
+        $users[-1];
+    };
+
+    $getByString = function () use ($users): void {
+        $users['0'];
+    };
+
+    SmokeTest::assertSame($bob, $users[0], "[0]");
+    SmokeTest::assertSame($cat, $users[2], "[2]");
+    SmokeTest::assertSame(true, isset($users[1]), "isset() of a position that's there");
+    SmokeTest::assertSame(false, isset($users[3]), "isset() of one that isn't");
+    SmokeTest::assertSame(false, isset($users['1']), "isset() of a position that isn't an int");
+    SmokeTest::assertSame($ann, $users[1] ?? null, "?? of a position that's there");
+    SmokeTest::assertSame(null, $users[3] ?? null, "?? of one that isn't");
+    SmokeTest::expectException(OutOfBoundsException::class, $getMissing, "index 3");
+    SmokeTest::expectException(OutOfBoundsException::class, $getNegative, "index -1");
+    SmokeTest::expectException(OutOfBoundsException::class, $getByString, "int positions, not string");
+};
+
+$smoke->run("readonly: reading elements with array syntax", $testReadingWithArraySyntax);
+
+$testWritingWithArraySyntax = function () use ($users, $ann): void {
+    $names = new ReadonlyStringCollection('Ann', 'Bob');
+
+    $append = function () use ($users, $ann): void {
+        $users[] = $ann;
+    };
+
+    $replace = function () use ($users, $ann): void {
+        $users[0] = $ann;
+    };
+
+    $unset = function () use ($users): void {
+        unset($users[0]);
+    };
+
+    $changeInPlace = function () use ($names): void {
+        $names[0] .= 'x';
+    };
+
+    SmokeTest::expectException(UnsupportedOperationException::class, $append, "Use merge()");
+    SmokeTest::expectException(UnsupportedOperationException::class, $replace, "Use merge()");
+    SmokeTest::expectException(UnsupportedOperationException::class, $unset, "Use filter()");
+    SmokeTest::expectException(UnsupportedOperationException::class, $changeInPlace, "can't be changed");
+    SmokeTest::assertSame(3, count($users), "the collection's elements after trying to write to it");
+    SmokeTest::assertSame(['Ann', 'Bob'], $names->toArray(), "the strings after trying to change one in place");
+};
+
+$smoke->run("readonly: writing with array syntax throws", $testWritingWithArraySyntax);
+
 $smoke->run("readonly: rejects a constructor that takes more than the elements", function (): void {
     $createWithLabel = function (): void {
         new CollectionWithExtraParameter('Staff', new User('Ann', 40));
