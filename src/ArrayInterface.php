@@ -2,7 +2,7 @@
 
 /*
  * A typed array that can be read and changed with array syntax ($array[] = $x, $array[$key], unset($array[$key])),
- * counted and looped over. It's similar to ramsey/collection's ArrayInterface.
+ * counted, looped over and encoded as JSON. It's similar to ramsey/collection's ArrayInterface.
  */
 
 namespace Programster\Collections;
@@ -12,7 +12,7 @@ namespace Programster\Collections;
  * @extends \ArrayAccess<array-key, T>
  * @extends \IteratorAggregate<array-key, T>
  */
-interface ArrayInterface extends \ArrayAccess, \Countable, \IteratorAggregate
+interface ArrayInterface extends \ArrayAccess, \Countable, \IteratorAggregate, \JsonSerializable
 {
     /**
      * Remove every element.

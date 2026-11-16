@@ -10,6 +10,7 @@ PHP Collections Package
 - [Quick start](#quick-start)
 - [Readonly collections](docs/readonly-collections.md)
 - [Mutable collections](docs/mutable-collections.md)
+- [Maps](docs/maps.md)
 - [Exceptions](docs/exceptions.md)
 - [Upgrading](docs/upgrading.md)
 - [Testing](docs/testing.md)
@@ -29,6 +30,12 @@ to catch mistakes as early as possible. There are two kinds:
   without copying it to protect it. Use these wherever a collection doesn't need to change.
 - **Mutable collections** (`AbstractCollection`) can be changed after they're created, for when one genuinely needs to
   be. Their elements are still checked as they're added.
+
+There are also typed **maps**, of elements looked up by a string key (e.g. users by their name), in the same two kinds:
+`AbstractReadonlyMap` and `AbstractMap`. See [Maps](docs/maps.md).
+
+Collections and maps encode as JSON (`json_encode()`) as an array of their elements, or for a map, an object of them
+by key.
 
 ## Requirements
 PHP 8.2, 8.3, 8.4 or 8.5. It has no other dependencies.
@@ -84,8 +91,9 @@ print "The oldest is " . $oldestFirst->first()->name . PHP_EOL;
 print "There are now " . count($withNewUser) . " users, and still " . count($users) . " in the original." . PHP_EOL;
 ```
 
-See [Readonly collections](docs/readonly-collections.md) for every method, and
-[Mutable collections](docs/mutable-collections.md) for a collection that can be changed after it's created.
+See [Readonly collections](docs/readonly-collections.md) for every method,
+[Mutable collections](docs/mutable-collections.md) for a collection that can be changed after it's created, and
+[Maps](docs/maps.md) for looking elements up by a key.
 
 ## Design principles
 - **Mistakes are caught as they're typed.** A collection's constructor takes a typed variadic, so PHP and your IDE

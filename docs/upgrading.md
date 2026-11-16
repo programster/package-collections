@@ -1,5 +1,6 @@
 # Upgrading
 
+- [From 2.0.0 to 2.1.0](#from-200-to-210)
 - [From 1.2.0 to 2.0.0](#from-120-to-200)
     - [Changes you need to make](#changes-you-need-to-make)
     - [Changes in behaviour](#changes-in-behaviour)
@@ -9,6 +10,17 @@
 - [From 0.1.0 to 1.0.0](#from-010-to-100)
 
 What changed in each release, and what, if anything, you need to change in your code when upgrading.
+
+## From 2.0.0 to 2.1.0
+Nothing needs to change in your code, unless you relied on a collection encoding as JSON as an empty object.
+
+- **New: typed maps.** `AbstractReadonlyMap` and `AbstractMap` hold elements looked up by a string key, checked by a
+  typed variadic constructor like the collections. They can replace ramsey/collection's typed maps. See
+  [Maps](maps.md).
+- **Collections encode as JSON.** Both kinds of collection implement `JsonSerializable`, so `json_encode()` gives a
+  JSON array of the elements. Before, a readonly collection silently encoded as an empty object (`{}`), as its elements
+  are in a property that isn't public. `ArrayInterface` (and so `CollectionInterface`) now extends `JsonSerializable`,
+  so a class of your own that implements either needs a `jsonSerialize()` method.
 
 ## From 1.2.0 to 2.0.0
 2.0.0 rewrites the mutable `AbstractCollection`, so it has the same methods as readonly collections, along with the

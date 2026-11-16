@@ -356,6 +356,17 @@ abstract class AbstractCollection implements CollectionInterface
 
 
     /**
+     * The collection as JSON, so json_encode() gives its elements, rather than an empty object: a JSON array of them,
+     * in order, or a JSON object if any were given string keys (as toArray() does).
+     * @return array<array-key, T>
+     */
+    public function jsonSerialize(): array
+    {
+        return $this->m_data;
+    }
+
+
+    /**
      * Get an iterator over a copy of the elements, which lets the collection be used in a foreach. Changing the
      * collection during the loop doesn't change what the loop goes over.
      * @return \ArrayIterator<array-key, T>

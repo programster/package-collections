@@ -77,7 +77,9 @@ are dropped.
 | `toArray()` | Gets the elements as an array. Changing the array doesn't change the collection. |
 | `isEmpty()`, `count()`, `getType()` | Check whether there are any elements, count them, or get their type. |
 
-A collection can also be looped over with `foreach`, and passed to `count()`.
+| `jsonSerialize()` | Gives a JSON array of the elements, so `json_encode($collection)` encodes them. |
+
+A collection can also be looped over with `foreach`, and passed to `count()` and `json_encode()`.
 
 ## Reading elements
 ```php

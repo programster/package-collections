@@ -40,7 +40,7 @@ use Programster\Collections\Internal\ElementTools;
  * @template T
  * @implements \IteratorAggregate<int, T>
  */
-abstract readonly class AbstractReadonlyCollection implements \Countable, \IteratorAggregate
+abstract readonly class AbstractReadonlyCollection implements \Countable, \IteratorAggregate, \JsonSerializable
 {
     use ElementTools;
 
@@ -339,6 +339,17 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
     public function count(): int
     {
         return count($this->m_elements);
+    }
+
+
+    /**
+     * The collection as a JSON array of its elements, in order, so json_encode() gives its elements, rather than an
+     * empty object.
+     * @return list<T>
+     */
+    public function jsonSerialize(): array
+    {
+        return $this->m_elements;
     }
 
 

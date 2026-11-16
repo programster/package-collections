@@ -15,6 +15,16 @@ parameters:
             identifier: new.static
             path: src/AbstractReadonlyCollection.php
             count: 4
+        # The same for the maps' methods that return a new map: the base constructor checks every subclass's
+        # constructor takes just the elements.
+        -
+            identifier: new.static
+            path: src/AbstractReadonlyMap.php
+            count: 3
+        -
+            identifier: new.static
+            path: src/AbstractMap.php
+            count: 1
         # These tests deliberately pass the wrong type, to check that it's rejected when the code runs.
         -
             identifier: argument.type
@@ -36,6 +46,19 @@ parameters:
         -
             identifier: argument.type
             path: testing/Fixtures/UntypedUserCollection.php
+            count: 1
+        -
+            identifier: argument.type
+            path: testing/Fixtures/UntypedUserMap.php
+            count: 1
+        # These tests deliberately put the wrong type in a map, to check that it's rejected when the code runs.
+        -
+            identifier: argument.type
+            path: testing/tests/AbstractMapTest.php
+            count: 1
+        -
+            identifier: argument.type
+            path: testing/tests/AbstractReadonlyMapTest.php
             count: 1
         # Accessors are one line, with no docblock, so SmokeTest::getFailures() can't say its array holds strings.
         -

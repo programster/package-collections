@@ -2,6 +2,7 @@
 
 - [Readonly collections](readonly-collections.md)
 - [Mutable collections](mutable-collections.md)
+- [Maps](maps.md)
 - [Exceptions](exceptions.md)
 - [Upgrading](upgrading.md)
 - [Testing](testing.md)

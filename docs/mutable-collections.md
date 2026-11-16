@@ -75,7 +75,8 @@ Reading a key that isn't there throws an `OutOfBoundsException`, and `clear()` r
 ## Reading, sorting and combining
 The rest of the methods are the same as a [readonly collection's](readonly-collections.md#methods): `first()`,
 `last()`, `contains()`, `column()`, `sort()`, `filter()`, `where()`, `map()`, `reduce()`, `merge()`, `diff()`,
-`intersect()`, `toArray()`, `isEmpty()`, `count()` and `getType()`.
+`intersect()`, `toArray()`, `isEmpty()`, `count()`, `getType()` and `jsonSerialize()` (so `json_encode()` gives a JSON
+array of the elements, or an object if any were given string keys).
 
 ```php
 $byName = $users->sort('name');
