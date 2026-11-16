@@ -24,9 +24,6 @@ final class LabelledUserCollection extends AbstractCollection
     }
 
 
-    public function getType(): string { return User::class; }
-
-
     # Accessors
     public function getLabel(): string { return $this->m_label; }
 }

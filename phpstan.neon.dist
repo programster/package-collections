@@ -55,6 +55,20 @@ parameters:
             identifier: argument.type
             path: testing/Fixtures/UntypedUserCollection.php
             count: 1
+        # These collections deliberately don't declare one type for their elements (none, nullable, or two), to check
+        # that they're refused the first time they're created.
+        -
+            identifier: missingType.parameter
+            paths:
+                - testing/Fixtures/NoTypeMutableCollection.php
+                - testing/Fixtures/NoTypeUserCollection.php
+        -
+            identifier: argument.type
+            paths:
+                - testing/Fixtures/NoTypeMutableCollection.php
+                - testing/Fixtures/NoTypeUserCollection.php
+                - testing/Fixtures/NullableUserCollection.php
+                - testing/Fixtures/UnionUserCollection.php
         -
             identifier: argument.type
             path: testing/Fixtures/UntypedUserMap.php

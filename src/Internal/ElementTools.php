@@ -16,78 +16,143 @@ use Programster\Collections\Exceptions\UnsupportedOperationException;
  */
 trait ElementTools
 {
-    # The type names getType() can return, other than a class, interface or enum name.
-    private const PSEUDO_TYPES = [
-        'array', 'bool', 'boolean', 'callable', 'float', 'double', 'int', 'integer', 'null', 'numeric', 'object',
-        'resource', 'scalar', 'string', 'mixed',
-    ];
+    # The built-in types a constructor can declare its elements as, as well as a class, interface or enum. The rest
+    # (e.g. mixed, null, or iterable) can't be told apart, or hold anything, so they're refused.
+    private const BUILT_IN_TYPES = ['array', 'bool', 'callable', 'float', 'int', 'object', 'string'];
+
 
     /**
-     * The type of element the collection holds: a class, interface or enum name, or one of "array", "bool" (or
-     * "boolean"), "callable", "float" (or "double"), "int" (or "integer"), "null", "numeric", "object", "resource",
-     * "scalar", "string" or "mixed".
+     * The type of element the collection holds: the type its constructor declares its elements as, e.g. "User" for
+     * User ...$users. It's a class, interface or enum name, or one of "array", "bool", "callable", "float", "int",
+     * "object" or "string". It's read from the constructor, so it can't be written wrong, and only once for each
+     * class, as it can't change.
+     *
      * @return string
+     *
+     * @throws \LogicException - if the constructor doesn't take its elements as its last parameter, a variadic that
+     * declares one type (see readElementType()).
      */
-    abstract public function getType(): string;
+    final public function getType(): string
+    {
+        return self::readElementType(static::class);
+    }
 
 
     /**
-     * Check that the collection's getType() names a type that exists, so a typo (e.g. "integr", or a class name that
-     * isn't imported) is caught the first time the collection is created, rather than every element being rejected.
-     * It's only checked once for each class, as it can't change.
+     * Check a readonly collection's (or a map's) constructor takes just its elements, as one variadic parameter that
+     * declares one type (see readElementType()), as the methods that return a new one create it with just the
+     * elements, so a class written wrong is refused the first time it's created. It's only checked once for each class,
+     * as it can't change.
+     *
+     * @param class-string $class - the collection's class.
+     *
      * @return void
-     * @throws \LogicException - if getType() doesn't name a known type, or an existing class, interface or enum.
+     *
+     * @throws \LogicException - if it doesn't.
      */
-    private function assertValidType(): void
+    private static function assertValidConstructor(string $class): void
     {
-        /** @var array<class-string, true> $checkedClasses */
-        static $checkedClasses = [];
+        $numParameters = (new \ReflectionMethod($class, '__construct'))->getNumberOfParameters();
 
-        if (!isset($checkedClasses[static::class]))
+        if ($numParameters !== 1)
         {
-            $type = $this->getType();
-
-            $isKnown = (
-                   in_array($type, self::PSEUDO_TYPES, true)
-                || class_exists($type)
-                || interface_exists($type)
-                || enum_exists($type)
+            throw new \LogicException(
+                "{$class}'s constructor must take just its elements, as one typed variadic parameter (e.g. " .
+                "User ...\$users), as the methods that return a new one create it with just the elements."
             );
+        }
 
-            if (!$isKnown)
+        self::readElementType($class);
+    }
+
+
+    /**
+     * Check a mutable collection's constructor takes its elements as its last parameter, a variadic that declares one
+     * type (see readElementType()). It can take other values before them, as its methods that return a new collection
+     * copy it, rather than creating one. It's only checked once for each class, as it can't change.
+     * @param class-string $class - the collection's class.
+     * @return void
+     * @throws \LogicException - if it doesn't.
+     */
+    private static function assertTypedConstructor(string $class): void
+    {
+        self::readElementType($class);
+    }
+
+
+    /**
+     * Read the type a collection's (or map's) constructor declares its elements as. It takes the elements as its last
+     * parameter, a variadic, which must declare one type, which isn't nullable. Elements of two kinds share an
+     * interface instead. It's only read once for each class, as it can't change.
+     *
+     * @param class-string $class - the collection's class.
+     *
+     * @return string - the type (see getType()).
+     *
+     * @throws \LogicException - if the constructor's last parameter isn't a variadic, or doesn't declare one type.
+     */
+    private static function readElementType(string $class): string
+    {
+        /** @var array<class-string, string> $types */
+        static $types = [];
+
+        if (!isset($types[$class]))
+        {
+            $parameters = (new \ReflectionMethod($class, '__construct'))->getParameters();
+            $last = end($parameters);
+
+            if ($last === false || !$last->isVariadic())
             {
                 throw new \LogicException(
-                    static::class . "::getType() returns \"{$type}\", which isn't a class, interface or enum that " .
-                    "exists, or one of: " . implode(", ", self::PSEUDO_TYPES) . "."
+                    "{$class}'s constructor must take its elements as its last parameter, a typed variadic (e.g. " .
+                    "User ...\$users), as their type is read from it."
                 );
             }
 
-            $checkedClasses[static::class] = true;
+            $type = $last->getType();
+
+            $isOneType = (
+                   $type instanceof \ReflectionNamedType
+                && !$type->allowsNull()
+                && ($type->isBuiltin() ? in_array($type->getName(), self::BUILT_IN_TYPES, true) : true)
+                && !in_array($type->getName(), ['self', 'static', 'parent'], true)
+            );
+
+            if (!$isOneType)
+            {
+                $declared = ($type === null) ? "no type" : "\"{$type}\"";
+
+                throw new \LogicException(
+                    "{$class}'s constructor must declare the one type its elements are (e.g. User ...\$users), but " .
+                    "declares {$declared}. It can be a class, interface or enum (use an interface for elements of " .
+                    "more than one class), or one of: " . implode(", ", self::BUILT_IN_TYPES) . ". It can't be " .
+                    "nullable."
+                );
+            }
+
+            $types[$class] = $type->getName();
         }
+
+        return $types[$class];
     }
 
 
     /**
      * Check whether a value is of a type.
      * @param mixed $value - the value.
-     * @param string $type - a class, interface or enum name, or one of the type names getType() can return.
+     * @param string $type - a class, interface or enum name, or one of the built-in types getType() can return.
      * @return bool
      */
     private static function isOfType(mixed $value, string $type): bool
     {
         return match ($type) {
             'array' => is_array($value),
-            'bool', 'boolean' => is_bool($value),
+            'bool' => is_bool($value),
             'callable' => is_callable($value),
-            'float', 'double' => is_float($value),
-            'int', 'integer' => is_int($value),
-            'null' => $value === null,
-            'numeric' => is_numeric($value),
+            'float' => is_float($value),
+            'int' => is_int($value),
             'object' => is_object($value),
-            'resource' => is_resource($value),
-            'scalar' => is_scalar($value),
             'string' => is_string($value),
-            'mixed' => true,
             default => $value instanceof $type,
         };
     }

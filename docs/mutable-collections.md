@@ -10,8 +10,8 @@ For a collection that genuinely needs to change after it's created, extend `Abst
 
 ## Creating a collection
 Extend `AbstractCollection` with a class whose constructor takes the elements as a typed variadic, and passes them on,
-so that PHP rejects an element of the wrong type where the collection is created, and whose `getType()` returns the
-elements' type:
+so that PHP rejects an element of the wrong type where the collection is created. The elements' type is read from the
+constructor:
 
 ```php
 final readonly class User
@@ -28,8 +28,6 @@ final class UserCollection extends AbstractCollection
     {
         parent::__construct(...$users);
     }
-
-    public function getType(): string { return User::class; }
 }
 
 $users = new UserCollection(new User("Ann", 40), new User("Bob", 25));
@@ -39,10 +37,11 @@ $users = new UserCollection(new User("Ann", 40), new User("Bob", 25));
   be created, and every collection checks its elements' type where it's made.
 - **Elements given string keys keep them**, such as by spreading an associative array into the constructor, e.g.
   `new UserCollection(...['owner' => $ann, 'admin' => $bob])`. The rest are numbered from 0.
-- **`getType()`** returns a class, interface or enum name, or one of `"array"`, `"bool"` (or `"boolean"`),
-  `"callable"`, `"float"` (or `"double"`), `"int"` (or `"integer"`), `"null"`, `"numeric"`, `"object"`, `"resource"`,
-  `"scalar"`, `"string"` or `"mixed"`. It's checked the first time the collection is created, so a typo, or a class
-  name that isn't imported, throws a `\LogicException` straight away, rather than every element being rejected.
+- **The elements' type is read from the constructor**, so there's nothing else to write. It can be a class, interface
+  or enum, or one of the built-in types `array`, `bool`, `callable`, `float`, `int`, `object` or `string`. For
+  elements of more than one class, declare an interface they share. A constructor that doesn't declare one type (none,
+  `mixed`, a nullable type, or a union) throws a `\LogicException` the first time the collection is created. `getType()`
+  returns the type, e.g. `"User"`.
 
 ## Changing it
 ```php
@@ -106,7 +105,7 @@ possible:
   the elements' type where the collection is made.
 - **`add()` returns nothing**, rather than always returning `true`.
 - **`remove()` throws a `NoSuchElementException`** if the element isn't there, rather than returning `false`.
-- **`getType()` is checked** the first time the collection is created.
+- **There's no `getType()` to write**, as the type is read from the constructor.
 - **`Sort`'s cases are `Sort::ASCENDING` and `Sort::DESCENDING`.**
 - **`map()` returns an array**, as its results can be of any type, rather than a collection of mixed values.
 - **Reading a key that isn't there throws an `OutOfBoundsException`**, rather than giving a warning and `null`.

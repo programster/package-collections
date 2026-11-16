@@ -17,7 +17,4 @@ final readonly class UserCollection extends AbstractReadonlyCollection
     {
         parent::__construct(...$users);
     }
-
-
-    public function getType(): string { return User::class; }
 }

@@ -17,7 +17,4 @@ final class MutableUserMap extends AbstractMap
     {
         parent::__construct(...$users);
     }
-
-
-    public function getType(): string { return User::class; }
 }

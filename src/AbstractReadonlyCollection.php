@@ -10,7 +10,7 @@
  * runs, rather than being caught by PHP and the IDE as it's typed. Use get() to read an element by its position.
  *
  * To create one, extend it with a readonly class whose constructor takes just the elements, as a typed variadic, and
- * passes them on, and whose getType() returns the elements' class, e.g.:
+ * passes them on. The elements' type is read from the constructor, e.g.:
  *
  *     final readonly class UserCollection extends AbstractReadonlyCollection
  *     {
@@ -18,8 +18,6 @@
  *         {
  *             parent::__construct(...$users);
  *         }
- *
- *         public function getType(): string { return User::class; }
  *     }
  *
  * The typed variadic means PHP rejects an element of the wrong type where the collection is created. The constructor
@@ -56,16 +54,15 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
      * dropped, so the elements are always numbered from 0.
      *
      * @throws InvalidArgumentException - if an element isn't of the collection's type, which can only happen if the
-     * subclass's constructor doesn't declare the type.
+     * subclass's constructor passes on something other than what it was given.
      *
-     * @throws \LogicException - if the subclass's constructor takes anything other than one variadic parameter, as
-     * the methods that return a new collection need to be able to create one from just its elements, or if its
-     * getType() doesn't name a type that exists.
+     * @throws \LogicException - if the subclass's constructor takes anything other than one variadic parameter that
+     * declares one type (see getType()), as the elements' type is read from it, and the methods that return a new
+     * collection need to be able to create one from just its elements.
      */
     protected function __construct(mixed ...$elements)
     {
         self::assertValidConstructor(static::class);
-        $this->assertValidType();
         $type = $this->getType();
 
         foreach ($elements as $element)
@@ -378,37 +375,6 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
                 "A " . static::class . " can only be combined with another " . static::class . ", not a " .
                 get_class($other) . "."
             );
-        }
-    }
-
-
-    /**
-     * Check that a collection's constructor takes just its elements, as one variadic parameter, as the methods that
-     * return a new collection create it with just the elements. This is only checked the first time each class is
-     * created, as it can't change.
-     * @param class-string $class - the collection's class.
-     * @return void
-     * @throws \LogicException - if the constructor takes anything else.
-     */
-    private static function assertValidConstructor(string $class): void
-    {
-        /** @var array<class-string, true> $checkedClasses */
-        static $checkedClasses = [];
-
-        if (!isset($checkedClasses[$class]))
-        {
-            $parameters = (new \ReflectionMethod($class, '__construct'))->getParameters();
-            $isValid = (count($parameters) === 1 && $parameters[0]->isVariadic());
-
-            if (!$isValid)
-            {
-                throw new \LogicException(
-                    "{$class}'s constructor must take just its elements, as one typed variadic parameter (e.g. " .
-                    "User ...\$users), as the methods that return a new collection create it with just the elements."
-                );
-            }
-
-            $checkedClasses[$class] = true;
         }
     }
 }

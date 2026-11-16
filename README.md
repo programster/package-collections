@@ -79,8 +79,6 @@ final readonly class UserCollection extends AbstractReadonlyCollection
     {
         parent::__construct(...$users);
     }
-
-    public function getType(): string { return User::class; }
 }
 
 $users = new UserCollection(
@@ -105,7 +103,8 @@ See [Readonly collections](docs/readonly-collections.md) for every method,
 
 ## Design principles
 - **Mistakes are caught as they're typed.** A collection's constructor takes a typed variadic, so PHP and your IDE
-  reject an element of the wrong type where the collection is made. A readonly collection has no array syntax, so
+  reject an element of the wrong type where the collection is made. The type is only written there, and read from it,
+  so it can't be written two different ways. A readonly collection has no array syntax, so
   writing to one can't even be expressed, rather than failing when the code runs.
 - **Readonly by default.** Use a readonly collection unless the collection genuinely needs to change after it's
   created.

@@ -10,7 +10,7 @@
  * rather than being caught by PHP and the IDE as it's typed. Use get() and containsKey() instead.
  *
  * To create one, extend it with a readonly class whose constructor takes just the elements, as a typed variadic, and
- * passes them on, and whose getType() returns the elements' type, e.g.:
+ * passes them on. The elements' type is read from the constructor, e.g.:
  *
  *     final readonly class UserMap extends AbstractReadonlyMap
  *     {
@@ -18,8 +18,6 @@
  *         {
  *             parent::__construct(...$users);
  *         }
- *
- *         public function getType(): string { return User::class; }
  *     }
  *
  * Then give it the elements by name, by spreading an associative array, or with named arguments:
@@ -59,16 +57,15 @@ abstract readonly class AbstractReadonlyMap implements \Countable, \IteratorAggr
      *
      * @throws InvalidArgumentException - if an element has no key (it was passed by position, or its key is a whole
      * number, which PHP turns into a position), or isn't of the map's type (which can only happen if the subclass's
-     * constructor doesn't declare the type).
+     * constructor passes on something other than what it was given).
      *
-     * @throws \LogicException - if the subclass's constructor takes anything other than one variadic parameter, as
-     * the methods that return a new map need to be able to create one from just its elements, or if its getType()
-     * doesn't name a type that exists.
+     * @throws \LogicException - if the subclass's constructor takes anything other than one variadic parameter that
+     * declares one type (see getType()), as the elements' type is read from it, and the methods that return a new map
+     * need to be able to create one from just its elements.
      */
     protected function __construct(mixed ...$elements)
     {
-        self::assertValidMapConstructor(static::class);
-        $this->assertValidType();
+        self::assertValidConstructor(static::class);
 
         /** @var array<string, T> $checked */
         $checked = $this->checkElements($elements);

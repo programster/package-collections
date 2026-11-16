@@ -18,7 +18,4 @@ final class MutableUserCollection extends AbstractCollection
     {
         parent::__construct(...$users);
     }
-
-
-    public function getType(): string { return User::class; }
 }

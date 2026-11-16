@@ -14,5 +14,4 @@ use Programster\Collections\AbstractCollection;
  */
 final class CollectionWithoutConstructor extends AbstractCollection
 {
-    public function getType(): string { return User::class; }
 }

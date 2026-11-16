@@ -18,7 +18,8 @@ are two kinds:
 
 ## Creating a map
 Extend `AbstractReadonlyMap` with a readonly class (or `AbstractMap` with a class). Its constructor must take just the
-elements, as one typed variadic parameter, and pass them on, and its `getType()` must return the elements' type:
+elements, as one typed variadic parameter, and pass them on. The elements' type is read from the constructor, as for a
+[collection](readonly-collections.md#creating-a-collection):
 
 ```php
 final readonly class User
@@ -35,8 +36,6 @@ final readonly class UserMap extends AbstractReadonlyMap
     {
         parent::__construct(...$users);
     }
-
-    public function getType(): string { return User::class; }
 }
 ```
 
@@ -138,8 +137,6 @@ final class MutableUserMap extends AbstractMap
     {
         parent::__construct(...$users);
     }
-
-    public function getType(): string { return User::class; }
 }
 
 $team = new MutableUserMap(ann: $ann);

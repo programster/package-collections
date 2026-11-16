@@ -1,7 +1,7 @@
 <?php
 
 /*
- * A mutable collection of a scalar type, named "integer" rather than "int", which getType() also allows.
+ * A mutable collection of a built-in type (int), whose type is read from its constructor like a class's.
  */
 
 namespace Programster\Collections\Testing\Fixtures;
@@ -17,7 +17,4 @@ final class MutableIntCollection extends AbstractCollection
     {
         parent::__construct(...$ints);
     }
-
-
-    public function getType(): string { return 'integer'; }
 }

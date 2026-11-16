@@ -24,9 +24,6 @@ final readonly class MapWithExtraParameter extends AbstractReadonlyMap
     }
 
 
-    public function getType(): string { return User::class; }
-
-
     # Accessors
     public function getLabel(): string { return $this->m_label; }
 }

@@ -1,8 +1,8 @@
 <?php
 
 /*
- * A careless collection, whose constructor doesn't declare its elements' type, for checking that the base class
- * still rejects an element of the wrong type.
+ * A careless collection, whose constructor declares its elements as mixed rather than their type, which must be
+ * refused, as the elements' type is read from the constructor.
  */
 
 namespace Programster\Collections\Testing\Fixtures;
@@ -18,7 +18,4 @@ final readonly class UntypedUserCollection extends AbstractReadonlyCollection
     {
         parent::__construct(...$users);
     }
-
-
-    public function getType(): string { return User::class; }
 }

@@ -20,7 +20,4 @@ final class MutableArrayCollection extends AbstractCollection
     {
         parent::__construct(...$rows);
     }
-
-
-    public function getType(): string { return 'array'; }
 }

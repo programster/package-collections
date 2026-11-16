@@ -12,7 +12,7 @@ wherever a collection doesn't need to change after it's created, which is most o
 
 ## Creating a collection
 Extend `AbstractReadonlyCollection` with a readonly class. Its constructor must take just the elements, as one typed
-variadic parameter, and pass them on, and its `getType()` must return the elements' type:
+variadic parameter, and pass them on:
 
 ```php
 final readonly class User
@@ -31,8 +31,6 @@ final readonly class UserCollection extends AbstractReadonlyCollection
     {
         parent::__construct(...$users);
     }
-
-    public function getType(): string { return User::class; }
 }
 
 $ann = new User("Ann", 40);
@@ -41,19 +39,18 @@ $cat = new User("Cat", 33);
 $users = new UserCollection($ann, $bob, $cat);
 ```
 
-- **The typed variadic** makes PHP reject an element of the wrong type where the collection is created. If a
-  constructor leaves the type off, the base class still checks each element against `getType()`, and throws an
-  `InvalidArgumentException`.
+- **The typed variadic** makes PHP reject an element of the wrong type where the collection is created.
 - **The constructor can't take anything else**, as the methods that return a new collection create it with just the
   elements. The base class checks this the first time each collection is created, and throws a `\LogicException` if it
   takes more.
 - **The class must be readonly**, which PHP enforces, as a readonly class can only be extended by another.
 - **The `@extends` docblock** tells PHPStan and your IDE the type of the elements, so they know what `first()`,
   `get()` and a `foreach` give you.
-- **`getType()`** returns a class, interface or enum name, or one of `"array"`, `"bool"` (or `"boolean"`),
-  `"callable"`, `"float"` (or `"double"`), `"int"` (or `"integer"`), `"null"`, `"numeric"`, `"object"`, `"resource"`,
-  `"scalar"`, `"string"` or `"mixed"`. It's checked the first time the collection is created, so a typo, or a class
-  name that isn't imported, throws a `\LogicException` straight away, rather than every element being rejected.
+- **The elements' type is read from the constructor**, so there's nothing else to write. It can be a class, interface
+  or enum, or one of the built-in types `array`, `bool`, `callable`, `float`, `int`, `object` or `string`. For
+  elements of more than one class, declare an interface they share. A constructor that doesn't declare one type (none,
+  `mixed`, a nullable type, or a union) throws a `\LogicException` the first time the collection is created. `getType()`
+  returns the type, e.g. `"User"`.
 
 The elements are always numbered from 0. Any keys, such as from spreading an associative array into the constructor,
 are dropped.

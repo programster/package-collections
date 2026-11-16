@@ -13,8 +13,6 @@ final readonly class NameCollection extends AbstractReadonlyCollection
     {
         parent::__construct(...$names);
     }
-
-    public function getType(): string { return 'string'; }
 }
 
 $names = new NameCollection();
@@ -40,6 +38,6 @@ They're all in the `Programster\Collections\Exceptions` namespace:
 | `InvalidPropertyOrMethod` | `\RuntimeException` | `column()`, `sort()` or `where()` is given a name that isn't a public property, method or key of the elements. |
 | `UnsupportedOperationException` | `\RuntimeException` | `column()`, `sort()` or `where()` is given a name, but the elements are scalars. |
 
-Separately, a collection whose `getType()` doesn't name a type that exists, or a readonly collection whose constructor
-takes anything other than its elements, throws a `\LogicException` the first time it's created, as that's a mistake in
-the collection class, rather than something to catch.
+Separately, a collection or map whose constructor takes anything other than its elements, or doesn't declare their one
+type, throws a `\LogicException` the first time it's created, as that's a mistake in the class, rather than something
+to catch.

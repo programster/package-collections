@@ -13,9 +13,11 @@ use Programster\Collections\Exceptions\OutOfBoundsException;
 use Programster\Collections\Exceptions\UnsupportedOperationException;
 use Programster\Collections\Sort;
 use Programster\Collections\Testing\Fixtures\CollectionWithExtraParameter;
-use Programster\Collections\Testing\Fixtures\MistypedReadonlyCollection;
+use Programster\Collections\Testing\Fixtures\NoTypeUserCollection;
+use Programster\Collections\Testing\Fixtures\NullableUserCollection;
 use Programster\Collections\Testing\Fixtures\OtherUserCollection;
 use Programster\Collections\Testing\Fixtures\ReadonlyStringCollection;
+use Programster\Collections\Testing\Fixtures\UnionUserCollection;
 use Programster\Collections\Testing\Fixtures\UntypedUserCollection;
 use Programster\Collections\Testing\Fixtures\User;
 use Programster\Collections\Testing\Fixtures\UserCollection;
@@ -172,20 +174,32 @@ $smoke->run("readonly: scalar collections", function (): void {
     SmokeTest::expectException(UnsupportedOperationException::class, $readProperty);
 });
 
-$smoke->run("readonly: rejects an element of the wrong type, even without a typed constructor", function (): void {
-    $createWithString = function (): void {
-        new UntypedUserCollection(new User('Ann', 40), 'not a user');
-    };
-
-    SmokeTest::expectException(InvalidArgumentException::class, $createWithString, "was given string");
+$smoke->run("readonly: reads the elements' type from the constructor", function (): void {
+    SmokeTest::assertSame(User::class, (new UserCollection())->getType(), "a class");
+    SmokeTest::assertSame('string', (new ReadonlyStringCollection())->getType(), "a built-in type");
 });
 
-$smoke->run("readonly: rejects a getType() that names a type that doesn't exist", function (): void {
-    $createMistyped = function (): void {
-        new MistypedReadonlyCollection(new User('Ann', 40));
-    };
+$smoke->run("readonly: refuses a constructor that doesn't declare one type", function (): void {
+    // No type, mixed, nullable, and two types: each can't say what the collection holds.
+    $creates = [
+        function (): void {
+            new NoTypeUserCollection(new User('Ann', 40));
+        },
+        function (): void {
+            new UntypedUserCollection(new User('Ann', 40));
+        },
+        function (): void {
+            new NullableUserCollection(new User('Ann', 40));
+        },
+        function (): void {
+            new UnionUserCollection(new User('Ann', 40));
+        },
+    ];
 
-    SmokeTest::expectException(\LogicException::class, $createMistyped, "\"Usr\"");
+    foreach ($creates as $create)
+    {
+        SmokeTest::expectException(\LogicException::class, $create, "must declare the one type");
+    }
 });
 
 $smoke->run("readonly: rejects a constructor that takes more than the elements", function (): void {

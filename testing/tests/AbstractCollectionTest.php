@@ -15,9 +15,9 @@ use Programster\Collections\Exceptions\UnsupportedOperationException;
 use Programster\Collections\Sort;
 use Programster\Collections\Testing\Fixtures\CollectionWithoutConstructor;
 use Programster\Collections\Testing\Fixtures\LabelledUserCollection;
-use Programster\Collections\Testing\Fixtures\MistypedMutableCollection;
 use Programster\Collections\Testing\Fixtures\MutableArrayCollection;
 use Programster\Collections\Testing\Fixtures\MutableIntCollection;
+use Programster\Collections\Testing\Fixtures\NoTypeMutableCollection;
 use Programster\Collections\Testing\Fixtures\MutableUserCollection;
 use Programster\Collections\Testing\Fixtures\User;
 use Programster\Collections\Testing\SmokeTest;
@@ -46,18 +46,20 @@ $smoke->run("mutable: created from a typed variadic", function () use ($makeUser
     SmokeTest::assertSame(['owner' => $ann, 'admin' => $bob], $keyed->toArray(), "string keys are kept");
 });
 
-$smoke->run("mutable: a collection must have a typed constructor, and a real type", function (): void {
+$smoke->run("mutable: a collection must have a typed constructor, which its type is read from", function (): void {
     $createWithoutConstructor = function (): void {
         new CollectionWithoutConstructor();
     };
 
     SmokeTest::expectException(\Error::class, $createWithoutConstructor, "protected");
+    SmokeTest::assertSame('int', (new MutableIntCollection())->getType(), "a built-in type");
 
-    $createMistyped = function (): void {
-        new MistypedMutableCollection(1);
+    $createUntyped = function (): void {
+        new NoTypeMutableCollection(new User('Ann', 40));
     };
 
-    SmokeTest::expectException(\LogicException::class, $createMistyped, "\"integr\"");
+    SmokeTest::expectException(\LogicException::class, $createUntyped, "must declare the one type");
+    SmokeTest::assertSame(User::class, (new MutableUserCollection())->getType(), "a class");
 });
 
 $smoke->run("mutable: rejects elements of the wrong type, however they're added", function () use ($makeUsers): void {

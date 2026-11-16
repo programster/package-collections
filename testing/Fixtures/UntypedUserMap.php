@@ -1,8 +1,8 @@
 <?php
 
 /*
- * A map whose constructor forgets to declare its elements' type, so that the base constructor's own check is what
- * rejects the wrong type.
+ * A map whose constructor declares its elements as mixed rather than their type, which must be refused, as the
+ * elements' type is read from the constructor.
  */
 
 namespace Programster\Collections\Testing\Fixtures;
@@ -18,7 +18,4 @@ final class UntypedUserMap extends AbstractMap
     {
         parent::__construct(...$users);
     }
-
-
-    public function getType(): string { return User::class; }
 }

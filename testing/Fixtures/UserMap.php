@@ -17,7 +17,4 @@ final readonly class UserMap extends AbstractReadonlyMap
     {
         parent::__construct(...$users);
     }
-
-
-    public function getType(): string { return User::class; }
 }

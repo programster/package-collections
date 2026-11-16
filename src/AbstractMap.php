@@ -10,8 +10,8 @@
  * (an element needs a key), reading a key that isn't there throws rather than giving null (isset() and ?? still work,
  * as they check first), and so does unsetting one.
  *
- * To create one, extend it with a class whose constructor takes the elements as a typed variadic, and passes them on,
- * and whose getType() returns the elements' type, e.g.:
+ * To create one, extend it with a class whose constructor takes the elements as a typed variadic, and passes them on.
+ * The elements' type is read from the constructor, e.g.:
  *
  *     final class UserMap extends AbstractMap
  *     {
@@ -19,8 +19,6 @@
  *         {
  *             parent::__construct(...$users);
  *         }
- *
- *         public function getType(): string { return User::class; }
  *     }
  *
  * Then give it the elements by name, by spreading an associative array, or with named arguments, e.g.
@@ -56,14 +54,13 @@ abstract class AbstractMap implements \Countable, \IteratorAggregate, \ArrayAcce
      * @throws InvalidArgumentException - if an element has no key (it was passed by position, or its key is a whole
      * number, which PHP turns into a position), or isn't of the map's type.
      *
-     * @throws \LogicException - if the subclass's constructor takes anything other than one variadic parameter, as
-     * filter() needs to be able to create one from just its elements, or if its getType() doesn't name a type that
-     * exists.
+     * @throws \LogicException - if the subclass's constructor takes anything other than one variadic parameter that
+     * declares one type (see getType()), as the elements' type is read from it, and filter() needs to be able to
+     * create one from just its elements.
      */
     protected function __construct(mixed ...$elements)
     {
-        self::assertValidMapConstructor(static::class);
-        $this->assertValidType();
+        self::assertValidConstructor(static::class);
 
         /** @var array<string, T> $checked */
         $checked = $this->checkElements($elements);

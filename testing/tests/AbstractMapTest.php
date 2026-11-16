@@ -86,7 +86,7 @@ $testRejectsWrongType = function () use ($ann): void {
     };
 
     SmokeTest::expectException(InvalidArgumentException::class, $putWrongType, "can only hold");
-    SmokeTest::expectException(InvalidArgumentException::class, $createUntyped, "can only hold");
+    SmokeTest::expectException(\LogicException::class, $createUntyped, "must declare the one type");
     SmokeTest::expectException(InvalidArgumentException::class, $createByPosition, "needs a key");
 };
 

@@ -1,5 +1,6 @@
 # Upgrading
 
+- [From 2.2.0 to 3.0.0](#from-220-to-300)
 - [From 2.1.1 to 2.2.0](#from-211-to-220)
 - [From 2.1.0 to 2.1.1](#from-210-to-211)
 - [From 2.0.0 to 2.1.0](#from-200-to-210)
@@ -12,6 +13,22 @@
 - [From 0.1.0 to 1.0.0](#from-010-to-100)
 
 What changed in each release, and what, if anything, you need to change in your code when upgrading.
+
+## From 2.2.0 to 3.0.0
+The elements' type is now read from the constructor, so there's no `getType()` to write, and it can't be written
+wrong (e.g. a typo, or a class that isn't imported).
+
+- **Delete `getType()` from every collection and map.** It's now `final`, so a class that still has one can't be
+  loaded. `getType()` still returns the type, read from the constructor.
+- **The constructor must declare the one type its elements are**, as its typed variadic (e.g. `User ...$users`): a
+  class, interface or enum, or one of `array`, `bool`, `callable`, `float`, `int`, `object` or `string`. A
+  constructor that declares no type, `mixed`, a nullable type or a union throws a `\LogicException` the first time the
+  class is created. For elements of more than one class, declare an interface they share.
+- **Removed element types:** `getType()` could return `"numeric"`, `"scalar"`, `"resource"`, `"null"` or `"mixed"`,
+  and the aliases `"boolean"`, `"double"` and `"integer"`. None of them can be declared as a single parameter type, so
+  a collection of them isn't supported any more.
+- **A mutable collection's constructor must take its elements last**, as a typed variadic, as their type is read from
+  it. It can still take other values before them (e.g. `string $label, User ...$users`).
 
 ## From 2.1.1 to 2.2.0
 Nothing needs to change in your code.

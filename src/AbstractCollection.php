@@ -7,8 +7,8 @@
  * AbstractReadonlyCollection unless the collection genuinely needs to change.
  *
  * To create one, extend it with a class whose constructor takes the elements as a typed variadic, and passes them on,
- * so that PHP rejects an element of the wrong type where the collection is created, and whose getType() returns the
- * elements' type, e.g.:
+ * so that PHP rejects an element of the wrong type where the collection is created. The elements' type is read from
+ * the constructor, e.g.:
  *
  *     final class UserCollection extends AbstractCollection
  *     {
@@ -16,8 +16,6 @@
  *         {
  *             parent::__construct(...$users);
  *         }
- *
- *         public function getType(): string { return User::class; }
  *     }
  */
 
@@ -49,13 +47,14 @@ abstract class AbstractCollection implements CollectionInterface
      * array, or with named arguments) keep them, and the rest are numbered from 0.
      *
      * @throws InvalidArgumentException - if an element isn't of the collection's type, which can only happen if the
-     * subclass's constructor doesn't declare the type.
+     * subclass's constructor passes on something other than what it was given.
      *
-     * @throws \LogicException - if the subclass's getType() doesn't name a type that exists.
+     * @throws \LogicException - if the subclass's constructor doesn't take the elements as its last parameter, a
+     * variadic that declares one type (see getType()), as the elements' type is read from it.
      */
     protected function __construct(mixed ...$elements)
     {
-        $this->assertValidType();
+        self::assertTypedConstructor(static::class);
 
         foreach ($elements as $key => $value)
         {

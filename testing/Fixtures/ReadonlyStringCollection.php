@@ -17,7 +17,4 @@ final readonly class ReadonlyStringCollection extends AbstractReadonlyCollection
     {
         parent::__construct(...$strings);
     }
-
-
-    public function getType(): string { return 'string'; }
 }

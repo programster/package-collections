@@ -44,9 +44,8 @@ interface CollectionInterface extends ArrayInterface
 
 
     /**
-     * The type of element the collection holds: a class, interface or enum name, or one of "array", "bool" (or
-     * "boolean"), "callable", "float" (or "double"), "int" (or "integer"), "null", "numeric", "object", "resource",
-     * "scalar", "string" or "mixed".
+     * The type of element the collection holds, as its constructor declares it: a class, interface or enum name, or one
+     * of "array", "bool", "callable", "float", "int", "object" or "string".
      * @return string
      */
     public function getType(): string;

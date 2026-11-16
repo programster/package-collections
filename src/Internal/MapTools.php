@@ -1,8 +1,8 @@
 <?php
 
 /*
- * What the mutable and readonly maps share: checking that every element was given a key and is of the map's type, and
- * that a map's constructor takes just its elements. This is internal to the package, and may change in any release.
+ * What the mutable and readonly maps share: checking that every element was given a key and is of the map's type. This
+ * is internal to the package, and may change in any release.
  */
 
 namespace Programster\Collections\Internal;
@@ -71,40 +71,6 @@ trait MapTools
                 "A " . static::class . " can only hold {$type}, but was given " . get_debug_type($value)
                 . " for \"{$key}\"."
             );
-        }
-    }
-
-
-    /**
-     * Check that a map's constructor takes just its elements, as one variadic parameter, as the methods that return a
-     * new map create it with just the elements. This is only checked the first time each class is created, as it
-     * can't change.
-     *
-     * @param class-string $class - the map's class.
-     *
-     * @return void
-     *
-     * @throws \LogicException - if the constructor takes anything else.
-     */
-    private static function assertValidMapConstructor(string $class): void
-    {
-        /** @var array<class-string, true> $checkedClasses */
-        static $checkedClasses = [];
-
-        if (!isset($checkedClasses[$class]))
-        {
-            $parameters = (new \ReflectionMethod($class, '__construct'))->getParameters();
-            $isValid = (count($parameters) === 1 && $parameters[0]->isVariadic());
-
-            if (!$isValid)
-            {
-                throw new \LogicException(
-                    "{$class}'s constructor must take just its elements, as one typed variadic parameter (e.g. " .
-                    "User ...\$users), as the methods that return a new map create it with just the elements."
-                );
-            }
-
-            $checkedClasses[$class] = true;
         }
     }
 }
