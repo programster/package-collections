@@ -45,6 +45,14 @@ PHP 8.2, 8.3, 8.4 or 8.5. It has no other dependencies.
 composer require programster/collections
 ```
 
+If you use PHPStan, also install its extension installer, which loads the package's rule for maps (see
+[Maps](docs/maps.md#catching-missing-keys-with-phpstan)), so a map made with elements that won't have keys is reported
+where it's written:
+
+```bash
+composer require --dev phpstan/extension-installer
+```
+
 ## Quick start
 Create a collection for your type by extending `AbstractReadonlyCollection` with a readonly class, whose constructor
 takes just the elements as a typed variadic, so that PHP rejects an element of the wrong type where it's created:
@@ -103,7 +111,7 @@ See [Readonly collections](docs/readonly-collections.md) for every method,
   created.
 - **Failures throw.** Methods throw a specific exception, rather than returning `null` or `false`. Every exception the
   package throws implements `CollectionException`, so you can catch them all at once.
-- **No dependencies.**
+- **No dependencies.** PHPStan is only needed for the package's optional rule for maps.
 
 ## License
 MIT. See [LICENSE](LICENSE).

@@ -1,5 +1,6 @@
 # Upgrading
 
+- [From 2.1.1 to 2.2.0](#from-211-to-220)
 - [From 2.1.0 to 2.1.1](#from-210-to-211)
 - [From 2.0.0 to 2.1.0](#from-200-to-210)
 - [From 1.2.0 to 2.0.0](#from-120-to-200)
@@ -11,6 +12,14 @@
 - [From 0.1.0 to 1.0.0](#from-010-to-100)
 
 What changed in each release, and what, if anything, you need to change in your code when upgrading.
+
+## From 2.1.1 to 2.2.0
+Nothing needs to change in your code.
+
+- **New: a PHPStan rule for maps.** It reports a map created with elements that won't have string keys (passed by
+  position, or spread from an array whose keys might not be strings), where it's written, rather than when the map's
+  constructor rejects them. With phpstan/extension-installer it's loaded automatically, so PHPStan may report maps
+  your code creates this way. See [Maps](maps.md#catching-missing-keys-with-phpstan).
 
 ## From 2.1.0 to 2.1.1
 Nothing needs to change in your code.

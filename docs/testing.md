@@ -37,6 +37,14 @@ on purpose, by passing the wrong type, or creating a collection without its own 
 rejected, and the base class's `new static()`, which is safe
 because the constructor checks every collection's constructor takes just its elements.
 
+It also includes the package's own rule (`extension.neon`), so the package is checked by it too.
+
+## The PHPStan rule
+`testing/tests/PhpStanRuleTest.php` runs PHPStan over `testing/PhpStanRuleFixtures/MapKeysExamples.php`, with just the
+package's rule (`MapKeysRule`), and checks it reports exactly the lines marked `// reported`: one error for each
+"reported" on the line, and none for the correct examples. Add an example there for any new case the rule should catch,
+or leave alone. The examples are left out of the package's own PHPStan run, as their mistakes are on purpose.
+
 ## The documentation's examples
 `testing/tests/DocsTest.php` runs the PHP examples in the README and every page in `docs/`, so the documentation can't
 drift from what the code does. Each document's examples run in order, as one script, in a separate PHP process, with a

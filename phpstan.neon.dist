@@ -1,4 +1,8 @@
 # PHPStan settings. Run with: vendor/bin/phpstan
+includes:
+    # The package's own rule, so the package is checked by it too.
+    - extension.neon
+
 parameters:
     level: 10
     phpVersion:
@@ -7,6 +11,10 @@ parameters:
     paths:
         - src
         - testing
+    excludePaths:
+        # Examples of the mistakes the package's rule reports, which are on purpose (see
+        # testing/tests/PhpStanRuleTest.php).
+        - testing/PhpStanRuleFixtures
     ignoreErrors:
         # The methods that return a new collection create it with new static(), passing just the elements. PHPStan
         # can't know that's safe, as each subclass narrows the constructor to a typed variadic, but the base
@@ -51,6 +59,16 @@ parameters:
             identifier: argument.type
             path: testing/Fixtures/UntypedUserMap.php
             count: 1
+        # These tests deliberately create maps whose elements won't have string keys (passed by position, or with a
+        # key like "123"), to check that they're rejected when the code runs, as well as by the rule.
+        -
+            identifier: collections.mapKeys
+            path: testing/tests/AbstractMapTest.php
+            count: 1
+        -
+            identifier: collections.mapKeys
+            path: testing/tests/AbstractReadonlyMapTest.php
+            count: 3
         # These tests deliberately put the wrong type in a map, to check that it's rejected when the code runs.
         -
             identifier: argument.type

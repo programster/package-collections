@@ -1,6 +1,7 @@
 # Maps
 
 - [Creating a map](#creating-a-map)
+- [Catching missing keys with PHPStan](#catching-missing-keys-with-phpstan)
 - [Reading elements](#reading-elements)
 - [Readonly maps: with() and without()](#readonly-maps-with-and-without)
 - [Mutable maps](#mutable-maps)
@@ -61,6 +62,28 @@ $noKeys = new UserMap($ann, $bob);
 The same goes for a key that's a whole number, such as `'123'`, as PHP turns it into a position when it's spread. Use
 keys that aren't numbers (e.g. `'user-123'`), or a [collection](readonly-collections.md) if the elements are really a
 list.
+
+## Catching missing keys with PHPStan
+PHP can't make a variadic be passed by name, so it can't reject `new UserMap($ann, $bob)` where it's written: only the
+map's constructor can, when the code runs. The package comes with a PHPStan rule that reports it where it's written
+instead, along with spreading an array whose keys might not all be strings (e.g. a `list<User>`, an `array` with no
+key type, or a key like `'123'`), so the mistake shows up in PHPStan and in an IDE that runs it.
+
+With [phpstan/extension-installer](https://github.com/phpstan/extension-installer), the rule is loaded automatically:
+
+```bash
+composer require --dev phpstan/extension-installer
+```
+
+Without it, include the package's `extension.neon` in your PHPStan configuration:
+
+```neon
+includes:
+    - vendor/programster/collections/extension.neon
+```
+
+Its errors have the identifier `collections.mapKeys`. To spread an array into a map, give it string keys, e.g.
+`array<string, User>`, so PHPStan knows they're strings.
 
 ## Reading elements
 ```php

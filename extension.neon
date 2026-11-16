@@ -1,0 +1,4 @@
+# The package's PHPStan rules. With phpstan/extension-installer this is loaded automatically. Without it, add it to
+# your project's phpstan.neon: includes: [vendor/programster/collections/extension.neon]
+rules:
+    - Programster\Collections\PHPStan\MapKeysRule
