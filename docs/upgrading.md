@@ -1,5 +1,6 @@
 # Upgrading
 
+- [From 2.1.0 to 2.1.1](#from-210-to-211)
 - [From 2.0.0 to 2.1.0](#from-200-to-210)
 - [From 1.2.0 to 2.0.0](#from-120-to-200)
     - [Changes you need to make](#changes-you-need-to-make)
@@ -10,6 +11,13 @@
 - [From 0.1.0 to 1.0.0](#from-010-to-100)
 
 What changed in each release, and what, if anything, you need to change in your code when upgrading.
+
+## From 2.1.0 to 2.1.1
+Nothing needs to change in your code.
+
+- **`map()` is typed for static analysis.** Every collection's and map's `map()` now declares that it returns the
+  callback's results' type (e.g. `list<string>` for a callback that returns a string), rather than `mixed`, so tools
+  such as PHPStan know what's in the array it returns.
 
 ## From 2.0.0 to 2.1.0
 Nothing needs to change in your code, unless you relied on a collection encoding as JSON as an empty object.

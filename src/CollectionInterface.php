@@ -132,8 +132,9 @@ interface CollectionInterface extends ArrayInterface
 
     /**
      * Apply a callback to every element, and get the results, as an array, as they can be of any type.
-     * @param callable(T): mixed $callback - turns an element into a result.
-     * @return list<mixed>
+     * @template TResult
+     * @param callable(T): TResult $callback - turns an element into a result.
+     * @return list<TResult>
      */
     public function map(callable $callback): array;
 

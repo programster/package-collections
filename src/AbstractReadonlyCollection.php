@@ -234,8 +234,9 @@ abstract readonly class AbstractReadonlyCollection implements \Countable, \Itera
     /**
      * Apply a callback to every element, and get the results. This returns an array rather than a collection, as
      * the results can be of any type. Put them in a collection of the results' type if needed.
-     * @param callable(T): mixed $callback - turns an element into a result.
-     * @return list<mixed>
+     * @template TResult
+     * @param callable(T): TResult $callback - turns an element into a result.
+     * @return list<TResult>
      */
     public function map(callable $callback): array
     {

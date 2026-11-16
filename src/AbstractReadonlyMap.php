@@ -202,9 +202,11 @@ abstract readonly class AbstractReadonlyMap implements \Countable, \IteratorAggr
      * Apply a callback to every element, and get the results under the same keys. This returns an array rather than
      * a map, as the results can be of any type. Put them in a map of the results' type if needed.
      *
-     * @param callable(T, string): mixed $callback - given each element and its key, returns its result.
+     * @template TResult
      *
-     * @return array<string, mixed>
+     * @param callable(T, string): TResult $callback - given each element and its key, returns its result.
+     *
+     * @return array<string, TResult>
      */
     public function map(callable $callback): array
     {
