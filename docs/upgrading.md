@@ -1,5 +1,6 @@
 # Upgrading
 
+- [From 3.1.0 to 4.0.0](#from-310-to-400)
 - [From 3.0.0 to 3.1.0](#from-300-to-310)
 - [From 2.2.0 to 3.0.0](#from-220-to-300)
 - [From 2.1.1 to 2.2.0](#from-211-to-220)
@@ -14,6 +15,47 @@
 - [From 0.1.0 to 1.0.0](#from-010-to-100)
 
 What changed in each release, and what, if anything, you need to change in your code when upgrading.
+
+## From 3.1.0 to 4.0.0
+Only maps have changed. Code that only uses collections (`AbstractReadonlyCollection` and `AbstractCollection`) can
+upgrade without changing anything.
+
+A map now holds **entries**, each a key and a value, of an entry class of its own, rather than values given keys by
+name. So PHP refuses a value without a key, or of the wrong type, where its entry is created, and keys can be ints as
+well as strings, including 0, 1, 2 and so on, and strings like `"123"`, which 3.x couldn't hold. See [Maps](maps.md).
+
+- **Create an entry class for each type of value you keep in a map**, extending `AbstractEntry`, whose constructor takes
+  the key and then the value, e.g. `__construct(int|string $key, User $user)`, and passes them on.
+- **Change each map's constructor to take its entries**, e.g. `__construct(UserEntry ...$entries)`, and its
+  `@extends` to give the value's type and the entry class, e.g. `@extends AbstractReadonlyMap<User, UserEntry>`. A map
+  whose constructor takes anything that isn't an entry class of its own (including `AbstractEntry` itself) throws a
+  `\LogicException` the first time it's created.
+- **Create maps from entries.** `new UserMap(...['ann' => $ann])` and `new UserMap(ann: $ann)` become
+  `new UserMap(new UserEntry('ann', $ann))`. Any keys the entries are given as arguments are ignored, as each entry has
+  its own.
+- **Add with entries.** `$map->with('ann', $ann)` becomes `$map->with(new UserEntry('ann', $ann))`, and
+  `$map->put('ann', $ann)` becomes `$map->put(new UserEntry('ann', $ann))`, or `$map['ann'] = $ann`, which creates the
+  entry for you. `$map[] = $entry` adds a whole entry. Each throws an `InvalidArgumentException` for an entry of another
+  entry class.
+- **Keys are `int|string`.** `get()`, `containsKey()`, `without()` and `remove()` take either. `keys()`, `foreach`, and
+  the keys given to `filter()` and `map()` callbacks give each key as it was when its entry was created, so a callback
+  that declared its key as `string` should declare `int|string`. PHP treats `"123"` and `123` as the same key, so a map
+  can't hold both.
+- **Two entries with the same key throw an `InvalidArgumentException`** when the map is created, naming the key. To
+  replace an entry, use `with()` or `put()`.
+- **`contains()` looks for a value**, `values()` and `toArray()` give the values, and the new `getEntries()` gives the
+  entries themselves.
+- **`getType()` gives the map's entry class**, e.g. `UserEntry`, rather than the values' type. The entry class's
+  `getValueType()` gives that.
+- **`getIterator()` returns a `\Generator`**, rather than an `\ArrayIterator`, so that it can give keys as they were
+  created. Only code that called `getIterator()` itself and relied on it being an `\ArrayIterator` is affected.
+- **`jsonSerialize()` always returns an object** (`\stdClass`), so a map whose keys are 0, 1, 2 and so on still
+  encodes as a JSON object.
+- **A map's elements are now in `$m_entries`** (entries, by key), rather than `$m_elements`, for a map class of your own
+  that used the property directly.
+- **The PHPStan rule for maps' keys has been removed** (`MapKeysRule`, with the identifier `collections.mapKeys`), as
+  keys can no longer be left out. Remove any `ignoreErrors` you had for `collections.mapKeys`, as PHPStan reports an
+  ignore that matches nothing. The rule for writes to readonly collections and maps is unchanged.
 
 ## From 3.0.0 to 3.1.0
 Nothing needs to change in your code.

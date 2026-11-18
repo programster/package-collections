@@ -12,14 +12,15 @@ use Programster\Collections\Testing\Fixtures\MutableUserMap;
 use Programster\Collections\Testing\Fixtures\ReadonlyStringCollection;
 use Programster\Collections\Testing\Fixtures\User;
 use Programster\Collections\Testing\Fixtures\UserCollection;
+use Programster\Collections\Testing\Fixtures\UserEntry;
 use Programster\Collections\Testing\Fixtures\UserMap;
 
 $ann = new User('Ann', 40);
 $users = new UserCollection($ann);
-$userMap = new UserMap(ann: $ann);
+$userMap = new UserMap(new UserEntry('ann', $ann));
 $names = new ReadonlyStringCollection('Ann');
 $mutableUsers = new MutableUserCollection($ann);
-$mutableMap = new MutableUserMap(ann: $ann);
+$mutableMap = new MutableUserMap(new UserEntry('ann', $ann));
 
 /** @var UserCollection|null $maybeUsers */
 $maybeUsers = $users;

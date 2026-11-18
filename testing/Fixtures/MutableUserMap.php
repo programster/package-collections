@@ -9,12 +9,12 @@ namespace Programster\Collections\Testing\Fixtures;
 use Programster\Collections\AbstractMap;
 
 /**
- * @extends AbstractMap<User>
+ * @extends AbstractMap<User, UserEntry>
  */
 final class MutableUserMap extends AbstractMap
 {
-    public function __construct(User ...$users)
+    public function __construct(UserEntry ...$entries)
     {
-        parent::__construct(...$users);
+        parent::__construct(...$entries);
     }
 }

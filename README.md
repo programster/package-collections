@@ -31,8 +31,10 @@ to catch mistakes as early as possible. There are two kinds:
 - **Mutable collections** (`AbstractCollection`) can be changed after they're created, for when one genuinely needs to
   be. Their elements are still checked as they're added.
 
-There are also typed **maps**, of elements looked up by a string key (e.g. users by their name), in the same two kinds:
-`AbstractReadonlyMap` and `AbstractMap`. See [Maps](docs/maps.md).
+There are also typed **maps**, of values looked up by an int or string key (e.g. invoices by their customer's ID), in
+the same two kinds: `AbstractReadonlyMap` and `AbstractMap`. A map holds entries of its own entry class, each a key and
+a value, so PHP refuses a value without a key, or of the wrong type, where its entry is created. See
+[Maps](docs/maps.md).
 
 Collections and maps encode as JSON (`json_encode()`) as an array of their elements, or for a map, an object of them
 by key.
@@ -45,10 +47,9 @@ PHP 8.2, 8.3, 8.4 or 8.5. It has no other dependencies.
 composer require programster/collections
 ```
 
-If you use PHPStan, also install its extension installer, which loads the package's rules, so a map made with elements
-that won't have keys (see [Maps](docs/maps.md#catching-missing-keys-with-phpstan)), or a write to a readonly collection
-or map with array syntax (see [Array syntax](docs/readonly-collections.md#array-syntax)), is reported where it's
-written:
+If you use PHPStan, also install its extension installer, which loads the package's rule, so a write to a readonly
+collection or map with array syntax (see [Array syntax](docs/readonly-collections.md#array-syntax)) is reported where
+it's written:
 
 ```bash
 composer require --dev phpstan/extension-installer
@@ -100,7 +101,7 @@ print "There are now " . count($withNewUser) . " users, and still " . count($use
 
 See [Readonly collections](docs/readonly-collections.md) for every method,
 [Mutable collections](docs/mutable-collections.md) for a collection that can be changed after it's created, and
-[Maps](docs/maps.md) for looking elements up by a key.
+[Maps](docs/maps.md) for looking values up by a key.
 
 ## Design principles
 - **Mistakes are caught as they're typed.** A collection's constructor takes a typed variadic, so PHP and your IDE

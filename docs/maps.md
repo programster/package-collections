@@ -1,80 +1,192 @@
 # Maps
 
 - [Creating a map](#creating-a-map)
-- [Catching missing keys with PHPStan](#catching-missing-keys-with-phpstan)
-- [Reading elements](#reading-elements)
+- [Keys](#keys)
+- [Reading values](#reading-values)
 - [Readonly maps: with() and without()](#readonly-maps-with-and-without)
 - [Mutable maps](#mutable-maps)
 - [Filtering, mapping and JSON](#filtering-mapping-and-json)
+- [Mistakes that are refused](#mistakes-that-are-refused)
 - [Coming from ramsey/collection](#coming-from-ramseycollection)
 
-A map holds elements of one type, each looked up by a string key, e.g. users by their name. Like collections, there
+A map holds values of one type, each looked up by a key, e.g. invoices by their customer's ID. Like collections, there
 are two kinds:
 
 - **Readonly maps** (`AbstractReadonlyMap`) can't be changed once they're created. `with()` and `without()` return a
   new map instead, and leave the original as it was. Use one wherever a lookup table doesn't need to change. Array
-  syntax can read one (`$users['ann']`), but writing to one with it throws.
+  syntax can read one (`$invoices[12]`), but writing to one with it throws.
 - **Mutable maps** (`AbstractMap`) can be changed after they're created, with `put()`, `remove()` and `clear()`, or
-  array syntax. Their elements are still checked as they're added.
+  array syntax.
+
+A map holds **entries**, each a key and a value, of an entry class of its own. PHP checks every entry where it's
+created: it can't be made without a key, and its value must be of the entry's type. So a value can never be put in a
+map without a key, or with the wrong type.
 
 ## Creating a map
-Extend `AbstractReadonlyMap` with a readonly class (or `AbstractMap` with a class). Its constructor must take just the
-elements, as one typed variadic parameter, and pass them on. The elements' type is read from the constructor, as for a
-[collection](readonly-collections.md#creating-a-collection):
+A map needs two small classes: an entry class, and the map itself.
+
+The entry class extends `AbstractEntry` with a readonly class. Its constructor takes the key, declared as
+`int|string` (or just `int`, or just `string`), and then the value, declared as its one type, and passes them on. The
+value's type is read from the constructor, so it's only written there:
 
 ```php
-final readonly class User
+final readonly class Invoice
 {
-    public function __construct(public string $name, public int $age) {}
+    public function __construct(public string $number, public int $pence) {}
 }
 
 /**
- * @extends AbstractReadonlyMap<User>
+ * @extends AbstractEntry<Invoice>
  */
-final readonly class UserMap extends AbstractReadonlyMap
+final readonly class InvoiceEntry extends AbstractEntry
 {
-    public function __construct(User ...$users)
+    public function __construct(int|string $key, Invoice $invoice)
     {
-        parent::__construct(...$users);
+        parent::__construct($key, $invoice);
     }
 }
 ```
 
-Give it the elements by key, by spreading an associative array, or with named arguments:
+The map extends `AbstractReadonlyMap` with a readonly class (or `AbstractMap` with a class). Its constructor takes
+just the entries, as a typed variadic of its entry class, and passes them on:
 
 ```php
-$ann = new User("Ann", 40);
-$bob = new User("Bob", 25);
+/**
+ * @extends AbstractReadonlyMap<Invoice, InvoiceEntry>
+ */
+final readonly class InvoiceMap extends AbstractReadonlyMap
+{
+    public function __construct(InvoiceEntry ...$entries)
+    {
+        parent::__construct(...$entries);
+    }
+}
 
-$users = new UserMap(...['ann' => $ann, 'bob' => $bob]);
-$sameUsers = new UserMap(ann: $ann, bob: $bob);
+$first = new Invoice("INV-1", 1500);
+$second = new Invoice("INV-2", 2500);
+
+// Invoices by the ID of the customer they're for.
+$invoices = new InvoiceMap(new InvoiceEntry(12, $first), new InvoiceEntry(15, $second));
 ```
 
-The typed variadic means PHP and your IDE reject an element of the wrong type where the map is made. Keys are always
-strings, as a variadic only keeps the keys of elements passed by name. An element passed by position would arrive
-without its key, so it's rejected, rather than silently being given a number:
+The `@extends` lines tell PHPStan and your IDE the value's type, and the map's entry class, so they know what
+`get()` returns, and report an entry of another class given to `with()` or `put()`.
+
+An entry class can have creators of its own, which are a good place to say how two objects are tied together, without
+either of them having to know about the other:
+
+```php
+final readonly class Customer
+{
+    public function __construct(public int $id, public string $name) {}
+}
+
+/**
+ * @extends AbstractEntry<Invoice>
+ */
+final readonly class CustomerInvoiceEntry extends AbstractEntry
+{
+    public function __construct(int|string $key, Invoice $invoice)
+    {
+        parent::__construct($key, $invoice);
+    }
+
+
+    public static function createForCustomer(Customer $customer, Invoice $invoice): CustomerInvoiceEntry
+    {
+        return new CustomerInvoiceEntry($customer->id, $invoice);
+    }
+}
+
+$ann = new Customer(20, "Ann");
+$annsEntry = CustomerInvoiceEntry::createForCustomer($ann, $first);
+$annsKey = $annsEntry->getKey();          // 20
+$annsInvoice = $annsEntry->getValue();    // INV-1
+```
+
+## Keys
+A key is an int or a string, and each key can only be used once in a map. Keys of 0, 1, 2 and so on are keys like any
+other, as each entry carries its own key, so a map never mistakes them for a list.
+
+`keys()`, and the keys `foreach` gives, are each given back as they were when their entry was created. PHP treats a
+string that's a whole number (e.g. `"123"`) as the same key as that number, as it does in any array, so a map can't
+hold both, and `get("123")` and `get(123)` find the same value:
+
+```php
+$numbered = new InvoiceMap(new InvoiceEntry("123", $first));
+$keys = $numbered->keys();                // ["123"], still a string.
+$same = $numbered->get(123);              // INV-1, as PHP treats "123" and 123 as one key.
+```
 
 ```php
 // Throws InvalidArgumentException
-$noKeys = new UserMap($ann, $bob);
+$clash = new InvoiceMap(new InvoiceEntry("123", $first), new InvoiceEntry(123, $second));
 ```
 
-The same goes for a key that's a whole number, such as `'123'`, as PHP turns it into a position when it's spread. Use
-keys that aren't numbers (e.g. `'user-123'`), or a [collection](readonly-collections.md) if the elements are really a
-list.
+## Reading values
+Reading a map works with keys and values. You already have the key you're reading, so `get()` gives the value:
 
-## Catching missing keys with PHPStan
-PHP can't make a variadic be passed by name, so it can't reject `new UserMap($ann, $bob)` where it's written: only the
-map's constructor can, when the code runs. The package comes with a PHPStan rule that reports it where it's written
-instead, along with spreading an array whose keys might not all be strings (e.g. a `list<User>`, an `array` with no
-key type, or a key like `'123'`), so the mistake shows up in PHPStan and in an IDE that runs it.
+```php
+$invoice = $invoices->get(12);            // INV-1
+$alsoInvoice = $invoices[12];             // The same, with array syntax.
+$hasIt = isset($invoices[15]);            // true
+$none = $invoices[99] ?? null;            // null, as there's nothing under 99.
+$hasKey = $invoices->containsKey(99);     // false
+$hasValue = $invoices->contains($first);  // true, as it's the same object.
+$keys = $invoices->keys();                // [12, 15]
+$values = $invoices->values();            // [INV-1, INV-2], numbered from 0.
+$array = $invoices->toArray();            // [12 => INV-1, 15 => INV-2]
 
-With [phpstan/extension-installer](https://github.com/phpstan/extension-installer), the rule is loaded automatically:
-
-```bash
-composer require --dev phpstan/extension-installer
+foreach ($invoices as $customerId => $invoice)
+{
+    print "Customer {$customerId}'s invoice is {$invoice->number}" . PHP_EOL;
+}
 ```
 
+`get()` and `$invoices[99]` throw a `NoSuchElementException` for a key that isn't there, rather than returning
+`null`, so check with `containsKey()`, `isset()` or `??` first if there might not be one:
+
+```php
+// Throws NoSuchElementException
+$missing = $invoices->get(99);
+```
+
+`getEntries()` gives the entries themselves, in order, e.g. to create another map from them:
+
+```php
+$copy = new InvoiceMap(...$invoices->getEntries());
+```
+
+## Readonly maps: with() and without()
+A readonly map can't be changed, so `with()` and `without()` return a new map, and leave the original as it was.
+`with()` takes an entry, and adds it, or replaces the entry already under its key (which keeps its place):
+
+```php
+$third = new Invoice("INV-3", 900);
+$withThird = $invoices->with(new InvoiceEntry(17, $third));   // 12, 15, 17
+$withoutTwelve = $withThird->without(12);                       // 15, 17
+$stillTwo = count($invoices);                                   // 2, as $invoices hasn't changed.
+```
+
+`with()` only takes entries of the map's own entry class, and `without()` throws a `NoSuchElementException` if the
+key isn't there, as removing it couldn't do anything, so it's likely to be a mistake:
+
+```php
+// Throws NoSuchElementException
+$invoices->without(99);
+```
+
+Writing to a readonly map with array syntax (`$invoices[17] = $third` or `unset($invoices[12])`) throws an
+`UnsupportedOperationException`, as it can't be changed. Use `with()` and `without()` instead:
+
+```php
+// Throws UnsupportedOperationException
+$invoices[17] = $third;
+```
+
+PHP can't refuse that where it's written, as reading and writing with array syntax come together (`ArrayAccess`), so
+the package's PHPStan rule reports it there instead, with the identifier `collections.readonlyWrite`. With
+[phpstan/extension-installer](https://github.com/phpstan/extension-installer), the rule is loaded automatically.
 Without it, include the package's `extension.neon` in your PHPStan configuration:
 
 ```neon
@@ -82,127 +194,85 @@ includes:
     - vendor/programster/collections/extension.neon
 ```
 
-This also loads the package's rule that reports writing to a readonly map or collection with array syntax (see
-[Readonly maps](#readonly-maps-with-and-without)). The rule for keys reports its errors with the identifier `collections.mapKeys`. To spread an array into a map, give it string keys, e.g.
-`array<string, User>`, so PHPStan knows they're strings.
-
-## Reading elements
-```php
-$bobAgain = $users->get('bob');           // Bob.
-$alsoBob = $users['bob'];                 // The same, with array syntax.
-$hasAnnKey = isset($users['ann']);        // true
-$noCat = $users['cat'] ?? null;           // null, as there's no "cat".
-$hasCat = $users->containsKey('cat');     // false.
-$hasAnn = $users->contains($ann);         // true, as it's the same object.
-$names = $users->keys();                  // ["ann", "bob"]
-$list = $users->values();                 // [Ann, Bob], numbered from 0.
-$array = $users->toArray();               // ["ann" => Ann, "bob" => Bob]
-
-foreach ($users as $key => $user)
-{
-    print "{$key} is {$user->name}" . PHP_EOL;
-}
-```
-
-`get()` and `$users['cat']` throw a `NoSuchElementException` for a key that isn't there, rather than returning
-`null`, so check with `containsKey()`, `isset()` or `??` first if there might not be one:
-
-```php
-// Throws NoSuchElementException
-$cat = $users->get('cat');
-```
-
-## Readonly maps: with() and without()
-A readonly map can't be changed, so `with()` and `without()` return a new map, and leave the original as it was.
-`with()` adds an element, or replaces the one already under that key (which keeps its place):
-
-```php
-$cat = new User("Cat", 33);
-$withCat = $users->with('cat', $cat);     // ann, bob, cat
-$withoutAnn = $withCat->without('ann');   // bob, cat
-$stillTwo = count($users);                // 2, as $users hasn't changed.
-```
-
-`without()` throws a `NoSuchElementException` if the key isn't there, as removing it couldn't do anything, so it's
-likely to be a mistake.
-
-Writing to a readonly map with array syntax (`$users['cat'] = $cat` or `unset($users['ann'])`) throws an
-`UnsupportedOperationException`, as it can't be changed. Use `with()` and `without()` instead:
-
-```php
-// Throws UnsupportedOperationException
-$users['cat'] = $cat;
-```
-
-PHP can't refuse that where it's written, as reading and writing with array syntax come together (`ArrayAccess`), so
-the package's PHPStan rules (see [above](#catching-missing-keys-with-phpstan)) report it there instead, with the
-identifier `collections.readonlyWrite`.
-
 ## Mutable maps
-A mutable map has the same methods for reading it, along with `put()`, `remove()` and `clear()`, and array syntax:
+A mutable map has the same methods for reading it, along with `put()` (which takes an entry), `remove()` and
+`clear()`, and array syntax:
 
 ```php
 /**
- * @extends AbstractMap<User>
+ * @extends AbstractMap<Invoice, InvoiceEntry>
  */
-final class MutableUserMap extends AbstractMap
+final class MutableInvoiceMap extends AbstractMap
 {
-    public function __construct(User ...$users)
+    public function __construct(InvoiceEntry ...$entries)
     {
-        parent::__construct(...$users);
+        parent::__construct(...$entries);
     }
 }
 
-$team = new MutableUserMap(ann: $ann);
-$team->put('bob', $bob);
-$team['cat'] = $cat;
-$isBobThere = isset($team['bob']);        // true
-$dan = $team['dan'] ?? null;              // null, as there's no "dan".
-unset($team['ann']);
-$team->remove('bob');                     // Only "cat" is left.
+$open = new MutableInvoiceMap(new InvoiceEntry(12, $first));
+$open->put(new InvoiceEntry(15, $second));
+$open[17] = $third;                       // Creates an InvoiceEntry for it, so PHP checks its type.
+$open[] = new InvoiceEntry(19, $third);   // Adds a whole entry, under its own key.
+$isThere = isset($open[15]);              // true
+unset($open[12]);
+$open->remove(15);                        // 17 and 19 are left.
 ```
 
-Array syntax works defensively: `$team[] = $user` throws an `InvalidArgumentException` (an element needs a key), and
-reading or unsetting a key that isn't there throws a `NoSuchElementException`. `isset()` and `??` still work, as they
-check first.
+`$open[17] = $third` creates an entry of the map's entry class, so a value of the wrong type is a `TypeError` on that
+line. `$open[] = ...` only takes a whole entry, as a value on its own has no key:
 
 ```php
 // Throws InvalidArgumentException
-$team[] = $ann;
+$open[] = $third;
 ```
 
 ## Filtering, mapping and JSON
 `filter()` returns a new map (for both kinds, so a mutable map is left as it was), and `map()` returns an array, both
-keeping the keys. Their callbacks are given each element and its key:
+keeping the keys. Their callbacks are given each value and its key:
 
 ```php
-$isOver30 = function (User $user, string $key): bool {
-    return $user->age > 30;
+$isLarge = function (Invoice $invoice, int|string $customerId): bool {
+    return $invoice->pence > 2000;
 };
 
-$describe = function (User $user, string $key): string {
-    return "{$key}: {$user->name}";
+$describe = function (Invoice $invoice, int|string $customerId): string {
+    return "{$customerId}: {$invoice->number}";
 };
 
-$over30 = $users->filter($isOver30);      // ann
-$descriptions = $users->map($describe);   // ["ann" => "ann: Ann", "bob" => "bob: Bob"]
+$large = $invoices->filter($isLarge);          // 15
+$descriptions = $invoices->map($describe);     // [12 => "12: INV-1", 15 => "15: INV-2"]
 ```
 
-A map encodes as a JSON object of its elements, by key. An empty map is an empty object (`{}`), not an empty array, so
-it's always the same kind of thing in the JSON:
+A map encodes as a JSON object of its values, by key. It's always an object, even when it's empty (`{}`), or its keys
+are 0, 1, 2 and so on, which `json_encode()` would otherwise give as an array:
 
 ```php
-$json = json_encode($users);              // {"ann":{"name":"Ann","age":40},"bob":{"name":"Bob","age":25}}
-$emptyJson = json_encode(new UserMap());  // {}
+$json = json_encode($invoices);                // {"12":{"number":"INV-1","pence":1500},"15":{...}}
+$emptyJson = json_encode(new InvoiceMap());    // {}
 ```
+
+## Mistakes that are refused
+Each mistake is refused where it's made, or the first time a class written wrong is used:
+
+- **A value without a key, or of the wrong type**, can't be made into an entry: PHP throws a `TypeError` on the line
+  that creates it.
+- **Two entries with the same key** throw an `InvalidArgumentException`, naming the key. To replace an entry, use
+  `with()` or `put()`.
+- **An entry of another class** given to `with()` or `put()` throws an `InvalidArgumentException`, and PHPStan reports
+  it where it's passed.
+- **An entry class written wrong** throws a `\LogicException` the first time it's created: its constructor must take
+  just the key (`int|string`, `int` or `string`) and then the value, declared as one type that isn't nullable.
+- **A map written wrong** throws a `\LogicException` the first time it's created: its constructor must take just its
+  entries, as a typed variadic of an entry class of its own. Taking `AbstractEntry ...$entries` is refused, as it would
+  let values of any type in.
 
 ## Coming from ramsey/collection
 The maps are similar to ramsey/collection's typed maps (`AbstractTypedMap`), but they aren't compatible with them, and
 work differently in places, to catch mistakes as early as possible:
 
-- **The elements' type is checked by PHP where the map is made**, through the constructor's typed variadic, rather
-  than with `getValueType()` when the code runs. There's no `getKeyType()`, as keys are always strings.
-- **An element without a key is rejected**, rather than being given a number.
+- **A map holds entries, each a key and a value**, so PHP checks the value's type, and that it has a key, where each
+  entry is made, rather than with `getKeyType()` and `getValueType()` when the code runs.
 - **`get()` and reading a missing key with array syntax throw**, rather than returning `null`. So does removing a key
   that isn't there.
 - **A readonly map's array syntax only reads**, and writing with it throws (and is reported by the package's PHPStan

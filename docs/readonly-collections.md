@@ -130,8 +130,10 @@ $users[] = new User("Dan", 50);
 PHP can't refuse those where they're written, as reading and writing with array syntax come together (`ArrayAccess`).
 So the package comes with a PHPStan rule that reports every write to a readonly collection or map with array syntax
 where it's written, so the mistake shows up in PHPStan, and in an IDE that runs it, rather than when the code runs.
-It's loaded the same way as the [rule for maps' keys](maps.md#catching-missing-keys-with-phpstan), and its errors have
-the identifier `collections.readonlyWrite`.
+With [phpstan/extension-installer](https://github.com/phpstan/extension-installer), it's loaded automatically.
+Without it, include the package's `extension.neon` in your PHPStan configuration
+(`includes: [vendor/programster/collections/extension.neon]`). Its errors have the identifier
+`collections.readonlyWrite`.
 
 ## Sorting, filtering and combining
 ```php

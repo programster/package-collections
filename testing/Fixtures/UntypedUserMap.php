@@ -1,8 +1,8 @@
 <?php
 
 /*
- * A map whose constructor declares its elements as mixed rather than their type, which must be refused, as the
- * elements' type is read from the constructor.
+ * A map whose constructor declares its entries as mixed rather than its entry class, which must be refused, as the
+ * entries' type is read from the constructor.
  */
 
 namespace Programster\Collections\Testing\Fixtures;
@@ -10,12 +10,12 @@ namespace Programster\Collections\Testing\Fixtures;
 use Programster\Collections\AbstractMap;
 
 /**
- * @extends AbstractMap<User>
+ * @extends AbstractMap<User, UserEntry>
  */
 final class UntypedUserMap extends AbstractMap
 {
-    public function __construct(mixed ...$users)
+    public function __construct(mixed ...$entries)
     {
-        parent::__construct(...$users);
+        parent::__construct(...$entries);
     }
 }

@@ -24,13 +24,22 @@ parameters:
             path: src/AbstractReadonlyCollection.php
             count: 4
         # The same for the maps' methods that return a new map: the base constructor checks every subclass's
-        # constructor takes just the elements.
+        # constructor takes just the entries. PHPStan can't then work out the new map's value type (TValue) from its
+        # entries, as it's only reached through TEntry's bound, but the new map has the same entry class.
         -
             identifier: new.static
             path: src/AbstractReadonlyMap.php
             count: 3
         -
             identifier: new.static
+            path: src/AbstractMap.php
+            count: 1
+        -
+            identifier: return.type
+            path: src/AbstractReadonlyMap.php
+            count: 3
+        -
+            identifier: return.type
             path: src/AbstractMap.php
             count: 1
         # These tests deliberately pass the wrong type, to check that it's rejected when the code runs.
@@ -69,20 +78,16 @@ parameters:
                 - testing/Fixtures/NoTypeUserCollection.php
                 - testing/Fixtures/NullableUserCollection.php
                 - testing/Fixtures/UnionUserCollection.php
+        # These entry and map classes are deliberately written wrong (an extra constructor parameter, or a map of
+        # users rather than entries), to check that they're refused the first time they're created.
+        -
+            identifier: constructor.unusedParameter
+            path: testing/Fixtures/EntryWithExtraParameter.php
+            count: 1
         -
             identifier: argument.type
-            path: testing/Fixtures/UntypedUserMap.php
+            path: testing/Fixtures/MapOfUsers.php
             count: 1
-        # These tests deliberately create maps whose elements won't have string keys (passed by position, or with a
-        # key like "123"), to check that they're rejected when the code runs, as well as by the rule.
-        -
-            identifier: collections.mapKeys
-            path: testing/tests/AbstractMapTest.php
-            count: 1
-        -
-            identifier: collections.mapKeys
-            path: testing/tests/AbstractReadonlyMapTest.php
-            count: 3
         # These tests deliberately write to readonly collections and maps with array syntax, to check that it throws
         # when the code runs, as well as being reported by the rule.
         -

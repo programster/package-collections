@@ -9,12 +9,12 @@ namespace Programster\Collections\Testing\Fixtures;
 use Programster\Collections\AbstractReadonlyMap;
 
 /**
- * @extends AbstractReadonlyMap<User>
+ * @extends AbstractReadonlyMap<User, UserEntry>
  */
 final readonly class UserMap extends AbstractReadonlyMap
 {
-    public function __construct(User ...$users)
+    public function __construct(UserEntry ...$entries)
     {
-        parent::__construct(...$users);
+        parent::__construct(...$entries);
     }
 }

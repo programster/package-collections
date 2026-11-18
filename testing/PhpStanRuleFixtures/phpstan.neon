@@ -6,5 +6,4 @@ includes:
 parameters:
     level: 0
     paths:
-        - MapKeysExamples.php
         - ReadonlyWriteExamples.php

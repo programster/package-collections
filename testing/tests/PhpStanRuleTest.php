@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Smoke test for the package's PHPStan rules (MapKeysRule and ReadonlyWriteRule). It runs PHPStan over
+ * Smoke test for the package's PHPStan rule (ReadonlyWriteRule). It runs PHPStan over
  * testing/PhpStanRuleFixtures, and checks each rule reports exactly the lines in its examples that are marked to be, so
  * it catches each mistake and nothing that's correct. These are run by testing/main.php, which provides $smoke.
  */
@@ -75,15 +75,9 @@ $testRule = function (string $examplesFile, string $identifier) use ($fixtures):
     SmokeTest::assertSame($expected, $reported, "the lines {$identifier} reports, and how many times");
 };
 
-$testMapKeysRule = function () use ($testRule): void {
-    $testRule('MapKeysExamples.php', 'collections.mapKeys');
-};
-
 $testReadonlyWriteRule = function () use ($testRule): void {
     $testRule('ReadonlyWriteExamples.php', 'collections.readonlyWrite');
 };
-
-$smoke->run("PHPStan rule: reports maps whose elements won't have string keys, and nothing else", $testMapKeysRule);
 
 $smoke->run(
     "PHPStan rule: reports writes to readonly collections and maps with array syntax, and nothing else",
